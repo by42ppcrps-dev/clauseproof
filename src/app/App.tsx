@@ -4,6 +4,7 @@ import type { WorkflowState } from "../domain/workflow.js";
 import { ActivityRail } from "../features/activity/ActivityRail.js";
 import { ContractPanel } from "../features/contract/ContractPanel.js";
 import { FuturesPanel } from "../features/futures/FuturesPanel.js";
+import { JudgePath } from "../features/guide/JudgePath.js";
 import { OutcomeLockPanel } from "../features/outcome/OutcomeLockPanel.js";
 import { RedlinePanel } from "../features/redline/RedlinePanel.js";
 import { TestBench } from "../features/testbench/TestBench.js";
@@ -24,19 +25,60 @@ const phaseLabels: Record<WorkflowState["phase"], string> = {
 const judgePrompt =
   "Inspect the SLA remedy and material-breach clauses. Stage the two strongest materially different readings of what happens after two qualifying SLA misses. Cite only clauses visible in this page. Do not choose the intended business result for me.";
 
+function writeWithLegacyClipboard(text: string): boolean {
+  const previousFocus =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : undefined;
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.position = "fixed";
+  field.style.opacity = "0";
+  document.body.append(field);
+  field.select();
+  const copied = document.execCommand("copy");
+  field.remove();
+  previousFocus?.focus();
+  return copied;
+}
+
+async function writeToClipboard(text: string): Promise<boolean> {
+  const modernWrite = navigator.clipboard?.writeText.bind(navigator.clipboard);
+  if (modernWrite) {
+    const modernResult = await Promise.race([
+      modernWrite(text).then(
+        () => true,
+        () => false,
+      ),
+      new Promise<boolean>((resolve) => {
+        globalThis.setTimeout(() => resolve(false), 300);
+      }),
+    ]);
+    if (modernResult) return true;
+  }
+
+  return writeWithLegacyClipboard(text);
+}
+
 export function App() {
   const demo = useClauseProof();
   const webMcpStatus = useWebMcpRegistry();
   const { state, busy } = demo;
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<
+    "idle" | "copying" | "copied" | "failed"
+  >("idle");
   const exclusiveRemedy = state.case.contract.clauses.find(
     ({ id }) => id === "sla-exclusive-remedy",
   );
 
   async function copyPrompt() {
-    await navigator.clipboard.writeText(judgePrompt);
-    setCopied(true);
-    globalThis.setTimeout(() => setCopied(false), 1_500);
+    setCopyState("copying");
+    const copied = await writeToClipboard(judgePrompt);
+    setCopyState(copied ? "copied" : "failed");
+    if (copied) {
+      globalThis.setTimeout(() => setCopyState("idle"), 1_500);
+    }
   }
 
   return (
@@ -58,7 +100,11 @@ export function App() {
           </div>
           <div className="mcp-status">{webMcpStatus}</div>
           <button className="quiet-button" onClick={copyPrompt} type="button">
-            {copied ? "Prompt copied" : "Copy judge prompt"}
+            {copyState === "copied"
+              ? "Prompt copied"
+              : copyState === "failed"
+                ? "Copy failed"
+                : "Copy judge prompt"}
           </button>
           <button
             className="quiet-button reset-button"
@@ -81,6 +127,22 @@ export function App() {
         </div>
       </header>
 
+      {copyState === "copying" || copyState === "failed" ? (
+        <section className="copy-fallback" role="status">
+          <p>
+            {copyState === "failed"
+              ? "Your browser blocked clipboard access. Select and copy this prompt:"
+              : "Copying… The prompt remains selectable below."}
+          </p>
+          <textarea
+            aria-label="Judge prompt"
+            onFocus={(event) => event.currentTarget.select()}
+            readOnly
+            value={judgePrompt}
+          />
+        </section>
+      ) : null}
+
       <section className="hero-copy" aria-labelledby="page-title">
         <div>
           <p className="eyebrow">Contract behavior testbench</p>
@@ -93,6 +155,8 @@ export function App() {
           both and shows where the commercial futures split.
         </p>
       </section>
+
+      <JudgePath phase={state.phase} />
 
       {demo.error ? (
         <div className="error-banner" role="alert">
