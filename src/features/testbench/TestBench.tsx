@@ -82,6 +82,24 @@ export function TestBench({
               </p>
             </div>
           ) : null}
+          <ol aria-label="Executed artifact chain" className="execution-chain">
+            <li>
+              <span>1</span>
+              <strong>Bounded semantic rule</strong>
+            </li>
+            <li>
+              <span>2</span>
+              <strong>Canonical clause generated</strong>
+            </li>
+            <li>
+              <span>3</span>
+              <strong>Displayed clause parsed back</strong>
+            </li>
+            <li>
+              <span>4</span>
+              <strong>Outcome and altered-rule tests executed</strong>
+            </li>
+          </ol>
           <div className="score-grid">
             <div
               className={

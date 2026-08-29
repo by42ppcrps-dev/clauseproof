@@ -71,7 +71,8 @@ export function OutcomeLockPanel({
         <>
           <p className="panel-intro">
             The agent may model readings. Only you define what this agreement
-            should do.
+            should do. Change any boundary below; generated wording and all 14
+            tests adapt to this lock.
           </p>
           <div className="rule-editor">
             <label>

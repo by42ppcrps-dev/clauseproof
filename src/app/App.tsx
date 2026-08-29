@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { WorkflowState } from "../domain/workflow.js";
 import { ActivityRail } from "../features/activity/ActivityRail.js";
+import { AuthorityBoundary } from "../features/authority/AuthorityBoundary.js";
 import { ContractPanel } from "../features/contract/ContractPanel.js";
 import { FuturesPanel } from "../features/futures/FuturesPanel.js";
 import { JudgePath } from "../features/guide/JudgePath.js";
@@ -214,6 +215,8 @@ export function App() {
         phase={state.phase}
         repairNeeded={repairNeeded}
       />
+
+      <AuthorityBoundary phase={state.phase} />
 
       {state.phase === "ready" ? (
         <section className="manual-fallback-strip" aria-label="Manual fallback">

@@ -13,6 +13,11 @@ import {
   type AuditEvent,
   type WorkflowState,
 } from "../domain/workflow.js";
+import {
+  outcomeLockSummary,
+  proposalSummary,
+  verificationSummary,
+} from "./auditSummaries.js";
 import { hasHumanAuthority, type HumanUiActor } from "./humanAuthority.js";
 import { assertAcceptanceProof } from "./acceptanceProof.js";
 import {
@@ -177,7 +182,7 @@ export class ClauseProofService {
       return this.success(
         auditActor,
         "lock_outcome",
-        "The person locked the expected contract behavior.",
+        outcomeLockSummary(outcomeLock),
         { outcomeLock },
       );
     } catch (error) {
@@ -199,7 +204,7 @@ export class ClauseProofService {
       return this.success(
         actor,
         "propose_clarifying_redline",
-        "A clarification was staged for testing, not accepted.",
+        proposalSummary(proposal, this.state.outcomeLock),
         { proposal },
       );
     } catch (error) {
@@ -221,7 +226,7 @@ export class ClauseProofService {
       return this.success(
         actor,
         "verify_contract_tests",
-        "Outcome and boundary tests were executed.",
+        verificationSummary(verification),
         { verification },
       );
     } catch (error) {
@@ -254,7 +259,7 @@ export class ClauseProofService {
       return this.success(
         auditActor,
         "accept_redline",
-        "The person accepted the tested clarification.",
+        `Person accepted the tested clarification as revision ${this.state.case.contract.revision} after independent proof recomputation.`,
         { revision: this.state.case.contract.revision },
       );
     } catch (error) {

@@ -41,6 +41,8 @@ Only a person may lock the intended behavior: two uptime misses below 99.5% with
 
 The application generates six deterministic tests covering the positive case, one miss, misses outside the window, an open cure period, a timely cure, and equality at the threshold. It then checks eight altered rules covering occurrence count, rolling window, cure period, credits, effect, and comparator boundaries.
 
+The page must make the collaboration boundary visible rather than merely describe it: each phase shows the service-authorized agent tools alongside the actions permanently reserved for the person. The accepted view retains the failed candidate, exact counterexample and surviving altered rule, repaired candidate, passing proof, and human acceptance in the recorded proof ledger.
+
 ## Non-goals
 
 Do not add arbitrary upload, OCR, external AI calls, third-party backends, research, auth, accounts, teams, e-signature, general legal analysis, risk scores, multiple contracts, multiple industries, a chatbot, or a reusable framework.

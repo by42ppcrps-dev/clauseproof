@@ -55,7 +55,9 @@ WebMCP is necessary for the agent collaboration, not for the deterministic engin
 - receive exact counterexamples from a failed candidate; and
 - repair and retest without inventing calculations or acceptance authority.
 
-The available tools change with the workflow phase. Every tool input uses a strict Zod schema, rejects unknown fields, and carries revision or artifact identifiers where required. WebMCP cannot lock an outcome, accept a revision, or reset the case. Those controls exist only in the human UI.
+The available tools change with the workflow phase. The page now exposes that exact live capability boundary beside the person-only controls, so a judge does not have to trust narration about who can do what. Every tool input uses a strict Zod schema, rejects unknown fields, and carries revision or artifact identifiers where required. WebMCP cannot lock an outcome, accept a revision, or reset the case. Those controls exist only in the human UI.
+
+The accepted view keeps the full failed-candidate-to-repair lineage in its proof ledger: the three-miss proposal, `5/6` outcome result, `7/8` altered-rule result, exact failure and survivor, two-miss repair, passing `6/6` and `8/8` rerun, and human acceptance. It also shows the executed artifact chain from bounded rule through generated wording and parse-back to deterministic tests.
 
 Without WebMCP, the page still has an explicit manual fallback for accessibility and repeatable testing. What WebMCP adds is genuine in-page agent action with live state, provenance, recovery evidence, and enforceable authority boundaries—not a second implementation of the business logic.
 

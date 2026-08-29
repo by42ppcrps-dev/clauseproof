@@ -9,7 +9,7 @@ Verified on August 29, 2026 against the source currently staged for the contest 
 | `npm run lint`                     | Passed                                  |
 | `npm run format:check`             | Passed                                  |
 | `npm run typecheck`                | Passed                                  |
-| `npm run test`                     | 18 files, 80 tests passed               |
+| `npm run test`                     | 18 files, 81 tests passed               |
 | `npm run check:architecture`       | Passed                                  |
 | `npm run check:tools`              | Passed                                  |
 | `npm run build`                    | Client and SSR production builds passed |
@@ -17,7 +17,7 @@ Verified on August 29, 2026 against the source currently staged for the contest 
 | `git diff --check`                 | Passed                                  |
 | Repository credential-pattern scan | No matches                              |
 
-The browser suite covers failed, repaired, and accepted phases; acceptance gating; dynamic custom-lock copy; critical evidence text size; and horizontal overflow at desktop and mobile widths.
+The browser suite covers failed, repaired, and accepted phases; acceptance gating; the shared live authority surface; adaptive non-default locks; the generated-text parse-back chain; final failed-candidate-to-repair ledger evidence; critical evidence text size; and horizontal overflow at desktop and mobile widths.
 
 The fresh-case browser-agent prompt explicitly supplies both canonical semantic combinations and preserves accrued credits in both, making the documented $80,000 path reproducible rather than dependent on an agent guess.
 
@@ -33,6 +33,8 @@ The in-app browser exercised the registered page tools against the running local
 6. A repaired two-occurrence proposal was generated and verified. The application returned `6/6`, `8/8`, no failed examples, no surviving altered rules, and human-acceptance eligibility.
 7. The WebMCP surface still exposed no acceptance tool. The person-only UI accepted the exact verified wording and advanced the agreement to revision 1.
 
+At each phase, the visible authority panel matched the same shared phase-to-tool mapping used by dynamic registration. The final proof ledger retained the three-miss failure, `positive-trigger` counterexample, `occurrences-lower` survivor, two-miss repair, passing rerun, and human acceptance as separate actor-attributed events.
+
 The accepted wording preserves Exhibit A credits as the exclusive monetary remedy and adds only the modeled SLA termination path, including written notice and the 10-day cure condition.
 
 ## Claims checked
@@ -46,6 +48,8 @@ The accepted wording preserves Exhibit A credits as the exclusive monetary remed
 - Acceptance independently recomputes the complete proof.
 - Service snapshots are frozen and persisted state is strictly parsed.
 - WebMCP receives an agent-only capability with no lock, accept, or reset methods.
+- The visible authority panel and WebMCP registry consume the same phase-to-tool mapping.
+- The generated clause is parsed back before the six outcome and eight altered-rule tests execute.
 
 ## Release evidence still required
 

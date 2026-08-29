@@ -423,6 +423,147 @@ h1 em {
   line-height: 1.3;
 }
 
+.authority-boundary {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.55fr) minmax(0, 1.45fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 15px;
+  padding: 17px 19px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 254, 251, 0.84);
+  box-shadow: var(--shadow-panel);
+}
+
+.authority-boundary h2 {
+  margin: 4px 0 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.authority-boundary-copy > p:last-of-type {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.authority-phase {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+  color: #69665f;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.authority-phase code {
+  color: #4c5660;
+  overflow-wrap: anywhere;
+}
+
+.authority-lanes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.authority-lane {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d5d9dc;
+  border-radius: 11px;
+}
+
+.agent-authority {
+  border-color: #b8cad9;
+  background: #edf3f7;
+}
+
+.human-authority {
+  border-color: #b7d2c7;
+  background: #edf7f3;
+}
+
+.authority-lane-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.authority-lane-heading > div > span {
+  color: #73716b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.authority-lane h3 {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.authority-count,
+.person-only-badge {
+  flex: 0 0 auto;
+  padding: 5px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.authority-count {
+  background: #d8e6ef;
+  color: #364e61;
+}
+
+.person-only-badge {
+  background: #d8ebe3;
+  color: #315d4b;
+}
+
+.authority-lane ul {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.authority-lane li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid rgba(50, 50, 50, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.authority-lane li strong {
+  min-width: 0;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.authority-lane li code,
+.authority-lane li > span {
+  color: #6b6e70;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 .workspace-grid {
   display: grid;
   grid-template-columns: minmax(300px, 0.92fr) minmax(300px, 0.78fr) minmax(
@@ -1027,6 +1168,46 @@ h1 em {
   margin-top: 15px;
 }
 
+.execution-chain {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.execution-chain li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid #c8d5de;
+  border-radius: 10px;
+  background: #f1f5f7;
+}
+
+.execution-chain li > span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: #d8e6ef;
+  color: #364e61;
+  font-size: 9px;
+  font-weight: 850;
+}
+
+.execution-chain strong {
+  min-width: 0;
+  color: #4b5359;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
 .score-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1205,7 +1386,7 @@ h1 em {
   display: grid;
   grid-template-columns: 8px minmax(130px, 1fr) auto;
   gap: 8px;
-  min-width: 195px;
+  min-width: 230px;
   padding: 8px 9px;
   border: 1px solid #e2ded5;
   border-radius: 9px;
@@ -1228,6 +1409,14 @@ h1 em {
   display: block;
   font-size: 9px;
   text-transform: uppercase;
+}
+
+.event-action {
+  display: block;
+  margin-top: 2px;
+  color: #4d514f;
+  font-size: 9px;
+  font-weight: 750;
 }
 
 .activity-rail li p {
@@ -1518,6 +1707,20 @@ footer {
     overflow: visible;
   }
 
+  .authority-boundary,
+  .authority-lanes {
+    grid-template-columns: 1fr;
+  }
+
+  .authority-lane li {
+    grid-template-columns: 1fr;
+  }
+
+  .authority-lane li code,
+  .authority-lane li > span {
+    text-align: left;
+  }
+
   .workspace-grid {
     grid-template-columns: 1fr;
   }
@@ -1533,6 +1736,7 @@ footer {
   .rule-editor,
   .score-grid,
   .test-lists,
+  .execution-chain,
   .redline-diff {
     grid-template-columns: 1fr;
   }

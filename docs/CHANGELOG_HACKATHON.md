@@ -81,6 +81,10 @@ Primary evidence:
 - Shows expected and actual outcomes for every test rather than only aggregate badges.
 - Shows which examples catch each altered rule and identifies missing counterexamples.
 - Distinguishes manual fallback actions, browser-agent actions, and human decisions in the activity trail.
+- Shows the exact service-authorized agent tools and permanently human-only actions from one shared phase mapping.
+- Preserves the wrong candidate, exact failed evidence, repair, passing rerun, and human acceptance in the final proof ledger.
+- Shows the executed artifact chain from bounded rule through generated wording and parse-back to deterministic tests.
+- Makes clear that a person's non-default lock regenerates the wording and all fourteen checks within the same case.
 
 Primary evidence:
 

@@ -119,6 +119,9 @@ describe("ClauseProofService", () => {
       "manual-fallback",
       "human-ui",
     ]);
+    expect(accepted.state.events.at(-1)?.summary).toBe(
+      "Person accepted the tested clarification as revision 1 after independent proof recomputation.",
+    );
   });
 
   it("rejects stale revisions and records one rejected event", async () => {
@@ -240,6 +243,13 @@ describe("ClauseProofService", () => {
     expect(passed.data.verification.outcomeSuite.passedCount).toBe(6);
     expect(passed.data.verification.outcomeSuite.totalCount).toBe(6);
     expect(passed.data.verification.eligibleForAcceptance).toBe(true);
+    expect(passed.state.events.slice(2).map(({ summary }) => summary)).toEqual([
+      "Person locked 2 qualifying misses within 6 months, a 10-day cure, termination without penalty, and preserved credits.",
+      "Staged a 3-miss clarification against the person's 2-miss lock; it is not accepted.",
+      "Candidate failed: 5/6 outcome tests passed and 7/8 altered rules caught; failed example: positive-trigger; survivor: occurrences-lower.",
+      "Staged a 2-miss clarification against the person's 2-miss lock; it is not accepted.",
+      "Candidate passed: 6/6 outcome tests and 8/8 altered rules caught; eligible for human acceptance.",
+    ]);
   });
 
   it("fails closed if staged canonical text is corrupted before verification", async () => {

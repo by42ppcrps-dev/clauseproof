@@ -13,6 +13,10 @@ import {
   type ModelContextLike,
   type RegisteredTool,
 } from "../../src/webmcp/registry.js";
+import {
+  agentToolsByPhase,
+  humanOnlyActions,
+} from "../../src/webmcp/surface.js";
 
 class FakeModelContext implements ModelContextLike {
   public readonly tools = new Map<string, RegisteredTool>();
@@ -52,6 +56,40 @@ async function flushRegistration() {
 }
 
 describe("phase-aware registry", () => {
+  it("publishes the exact dynamic surface without human-only authority", () => {
+    expect(agentToolsByPhase).toEqual({
+      ready: ["inspect_contract_case", "stage_interpretations"],
+      interpretations_staged: [
+        "inspect_contract_case",
+        "run_contract_crash_test",
+      ],
+      divergence_visible: ["inspect_contract_case"],
+      outcome_locked: ["inspect_contract_case", "propose_clarifying_redline"],
+      redline_staged: ["inspect_contract_case", "verify_contract_tests"],
+      verified: ["inspect_contract_case"],
+      accepted: ["inspect_contract_case"],
+    });
+    expect(humanOnlyActions).toEqual([
+      { id: "lockOutcome", label: "Lock intended behavior" },
+      { id: "acceptRedline", label: "Accept tested revision" },
+      { id: "resetDemo", label: "Reset case" },
+    ]);
+
+    const agentActions = new Set<string>(
+      Object.values(agentToolsByPhase).flat(),
+    );
+    expect([...agentActions].sort()).toEqual([
+      "inspect_contract_case",
+      "propose_clarifying_redline",
+      "run_contract_crash_test",
+      "stage_interpretations",
+      "verify_contract_tests",
+    ]);
+    for (const action of humanOnlyActions) {
+      expect(agentActions.has(action.id)).toBe(false);
+    }
+  });
+
   it("registers only relevant tools and revokes the previous generation", async () => {
     const { context, registry, store } = harness();
     await registry.mount();

@@ -31,6 +31,8 @@ Agent or manual-fallback actors may stage interpretations, run the crash test, s
 
 There is no generic public dispatch API. Human-only service methods require a human actor type that WebMCP code cannot construct or import through its adapter surface. An agent-originated audit event can never be recorded as `human-ui`.
 
+The WebMCP registry and the visible authority panel consume one shared phase-to-tool mapping. The UI therefore shows the same service-authorized agent surface that dynamic registration enforces, while separately identifying `lockOutcome`, `acceptRedline`, and `resetDemo` as person-only operations.
+
 ## Workflow
 
 ```text
@@ -44,6 +46,8 @@ ready
 ```
 
 Every out-of-phase command fails without mutating business state. A failed verification preserves its counterexample evidence but returns the workflow to `outcome_locked`, where the agent may stage a replacement proposal. Reset is the sole full restart. Before acceptance, revision or outcome changes invalidate downstream artifacts. Acceptance advances the revision while retaining the exact proof bundle bound to the accepted wording.
+
+Audit events record actor, action, outcome, sequence, and a concise evidence summary. This lets the final proof ledger preserve the wrong candidate, its exact test and altered-rule result, the repair, the passing rerun, and the person's acceptance even though only the current proposal remains the active workflow artifact.
 
 ## Persistence and registration
 

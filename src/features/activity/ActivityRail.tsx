@@ -11,6 +11,27 @@ function actorLabel(actor: AuditEvent["actor"]): string {
   return "Application";
 }
 
+function actionLabel(action: string): string {
+  switch (action) {
+    case "stage_interpretations":
+      return "Readings staged";
+    case "run_contract_crash_test":
+      return "Same facts executed";
+    case "lock_outcome":
+      return "Intent locked";
+    case "propose_clarifying_redline":
+      return "Clarification staged";
+    case "verify_contract_tests":
+      return "Candidate tested";
+    case "accept_redline":
+      return "Revision accepted";
+    case "reset_demo":
+      return "Case reset";
+    default:
+      return "Action recorded";
+  }
+}
+
 export function ActivityRail({ events }: ActivityRailProps) {
   return (
     <section
@@ -19,16 +40,16 @@ export function ActivityRail({ events }: ActivityRailProps) {
       aria-live="polite"
     >
       <div>
-        <p className="eyebrow">Provenance</p>
-        <h2 id="activity-heading">Human–agent activity</h2>
+        <p className="eyebrow">Recorded provenance</p>
+        <h2 id="activity-heading">Proof ledger</h2>
       </div>
       {events.length === 0 ? (
         <p className="activity-empty">
-          No actions yet. Every transition will show who caused it.
+          No actions yet. Every transition records who acted and what happened.
         </p>
       ) : (
         <ol>
-          {events.slice(-6).map((event) => (
+          {events.map((event) => (
             <li key={event.id}>
               <span
                 className={`actor-dot actor-${event.actor.kind}`}
@@ -36,6 +57,9 @@ export function ActivityRail({ events }: ActivityRailProps) {
               />
               <div>
                 <strong>{actorLabel(event.actor)}</strong>
+                <span className="event-action">
+                  {actionLabel(event.action)}
+                </span>
                 <p>{event.summary}</p>
               </div>
               <span className="event-sequence">#{event.sequence}</span>

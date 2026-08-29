@@ -340,6 +340,11 @@ test("derives candidate copy for every supported occurrence lock", async ({
 
   for (const value of cases) {
     await completeManualThroughDivergence(page);
+    await expect(
+      page.getByRole("region", { name: "Lock intended behavior" }),
+    ).toContainText(
+      "Change any boundary below; generated wording and all 14 tests adapt to this lock.",
+    );
     await page.getByLabel("Qualifying misses").fill(String(value.locked));
     await page.getByRole("button", { name: "Lock this outcome" }).click();
     await expect(page.locator(".agent-instruction")).toContainText(
@@ -481,6 +486,19 @@ test("uses real WebMCP tools for a failed candidate and agent repair", async ({
   await expect(
     page.getByText("Repair required", { exact: true }),
   ).toBeVisible();
+  const executedArtifactChain = page.getByRole("list", {
+    name: "Executed artifact chain",
+  });
+  await expect(executedArtifactChain).toContainText("Bounded semantic rule");
+  await expect(executedArtifactChain).toContainText(
+    "Canonical clause generated",
+  );
+  await expect(executedArtifactChain).toContainText(
+    "Displayed clause parsed back",
+  );
+  await expect(executedArtifactChain).toContainText(
+    "Outcome and altered-rule tests executed",
+  );
   await expect(page.getByText("5/6", { exact: true })).toBeVisible();
   await expect(page.getByText("7/8", { exact: true })).toBeVisible();
   const failedOutcome = page
@@ -568,6 +586,22 @@ test("uses real WebMCP tools for a failed candidate and agent repair", async ({
   await expect(
     page.getByText("Revision accepted", { exact: true }).first(),
   ).toBeVisible();
+  const proofLedger = page.getByRole("region", { name: "Proof ledger" });
+  await expect(proofLedger).toContainText(
+    "Staged a 3-miss clarification against the person's 2-miss lock; it is not accepted.",
+  );
+  await expect(proofLedger).toContainText(
+    "Candidate failed: 5/6 outcome tests passed and 7/8 altered rules caught; failed example: positive-trigger; survivor: occurrences-lower.",
+  );
+  await expect(proofLedger).toContainText(
+    "Staged a 2-miss clarification against the person's 2-miss lock; it is not accepted.",
+  );
+  await expect(proofLedger).toContainText(
+    "Candidate passed: 6/6 outcome tests and 8/8 altered rules caught; eligible for human acceptance.",
+  );
+  await expect(proofLedger).toContainText(
+    "Person accepted the tested clarification as revision 1 after independent proof recomputation.",
+  );
   await expectNoHorizontalOverflow(page);
 
   const acceptedDocumentSequence = await browserDocumentSequence(page);
