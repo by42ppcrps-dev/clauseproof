@@ -1,0 +1,47 @@
+{
+  "name": "clauseproof-contract-testbench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . --max-warnings 0",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "check:tools": "node scripts/check-tool-budgets.mjs",
+    "preview": "vite preview",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test && npm run check:architecture && npm run check:tools && npm run build",
+    "check:full": "npm run check && npm run test:e2e"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "zod": "4.5.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@openai/sites-vite-plugin": "^0.2.0",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "24.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "8.68.0",
+    "@typescript-eslint/parser": "8.68.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "eslint": "10.9.1",
+    "globals": "17.11.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "vite": "^8.2.2",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

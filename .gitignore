@@ -1,0 +1,12 @@
+coverage/
+dist/
+node_modules/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.DS_Store
+ClauseProof_AGENTS.md
+ClauseProof_AI_Executable_Backlog.md
+ClauseProof_Master_Build_Spec.md
+ClauseProof_Planning_Bundle.zip
+ClauseProof_Planning_Bundle/
