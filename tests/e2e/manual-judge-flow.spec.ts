@@ -53,7 +53,17 @@ test.afterEach(async ({ page }) => {
 
 async function installBrowserModelContext(page: Page): Promise<void> {
   await page.addInitScript(() => {
+    const documentSequence =
+      Number(sessionStorage.getItem("clauseproof-test-document-sequence")) + 1;
+    sessionStorage.setItem(
+      "clauseproof-test-document-sequence",
+      String(documentSequence),
+    );
     const tools = new Map<string, ToolRegistration>();
+    Object.defineProperty(globalThis, "__clauseProofDocumentSequence", {
+      configurable: true,
+      value: documentSequence,
+    });
     Object.defineProperty(globalThis, "__clauseProofTools", {
       configurable: true,
       value: tools,
@@ -79,6 +89,24 @@ async function installBrowserModelContext(page: Page): Promise<void> {
   });
   await page.reload();
   await expect(page.getByText("WebMCP · dynamic tools live")).toBeVisible();
+}
+
+async function browserDocumentSequence(page: Page): Promise<number> {
+  return page.evaluate(() => {
+    const browserGlobal = globalThis as typeof globalThis & {
+      __clauseProofDocumentSequence?: number;
+    };
+    return browserGlobal.__clauseProofDocumentSequence ?? 0;
+  });
+}
+
+async function registeredBrowserToolNames(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const browserGlobal = globalThis as typeof globalThis & {
+      __clauseProofTools?: Map<string, ToolRegistration>;
+    };
+    return [...(browserGlobal.__clauseProofTools?.keys() ?? [])].sort();
+  });
 }
 
 async function executeBrowserTool<T>(
@@ -541,6 +569,60 @@ test("uses real WebMCP tools for a failed candidate and agent repair", async ({
     page.getByText("Revision accepted", { exact: true }).first(),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
+
+  const acceptedDocumentSequence = await browserDocumentSequence(page);
+  await page.getByRole("button", { name: "Reset" }).click();
+  await expect
+    .poll(() => browserDocumentSequence(page))
+    .toBeGreaterThan(acceptedDocumentSequence);
+  await expect(
+    page.getByText("Ready to inspect", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("Revision 0", { exact: true })).toBeVisible();
+  await expect(page.getByText("WebMCP · dynamic tools live")).toBeVisible();
+  await expect
+    .poll(() => registeredBrowserToolNames(page))
+    .toEqual(["inspect_contract_case", "stage_interpretations"]);
+
+  const restarted = await executeBrowserTool<StageInterpretationsResult>(
+    page,
+    "stage_interpretations",
+    {
+      baseRevision: 0,
+      interpretations: [
+        {
+          label: "Credits displace every SLA remedy",
+          clauseIds: [
+            "sla-commitment",
+            "sla-exclusive-remedy",
+            "material-breach",
+          ],
+          semantics: {
+            exclusiveRemedyScope: "all_sla_related_remedies",
+            repeatedSlaFailureMayBeMaterialBreach: false,
+            creditsSurviveTermination: true,
+          },
+          rationale:
+            "The exclusive-remedy sentence is modeled as replacing every remedy caused by the repeated SLA misses.",
+        },
+        {
+          label: "Breach termination remains independent",
+          clauseIds: ["sla-exclusive-remedy", "material-breach"],
+          semantics: {
+            exclusiveRemedyScope: "sla_compensation_only",
+            repeatedSlaFailureMayBeMaterialBreach: true,
+            creditsSurviveTermination: true,
+          },
+          rationale:
+            "The remedy sentence limits compensation while the separate material-breach clause preserves a termination route.",
+        },
+      ],
+    },
+  );
+  expect(restarted.ok).toBe(true);
+  await expect
+    .poll(() => registeredBrowserToolNames(page))
+    .toEqual(["inspect_contract_case", "run_contract_crash_test"]);
 });
 
 test("has no horizontal overflow and exposes visible keyboard focus", async ({

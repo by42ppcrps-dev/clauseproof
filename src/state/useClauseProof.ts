@@ -80,6 +80,19 @@ export function useClauseProof() {
     );
   }
 
+  async function reset() {
+    setBusy(true);
+    setError(null);
+    const result = await clauseProofStore.reset();
+    if (!result.ok && result.error) {
+      setError(result.error.message);
+      setBusy(false);
+      return;
+    }
+    setBusy(false);
+    globalThis.location.reload();
+  }
+
   return {
     state,
     busy,
@@ -105,6 +118,6 @@ export function useClauseProof() {
     stageSampleRedline,
     verifyRedline,
     acceptRedline,
-    reset: () => run(() => clauseProofStore.reset()),
+    reset,
   };
 }
