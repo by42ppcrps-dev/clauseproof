@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "clean": "node scripts/clean-dist.mjs",
     "dev": "vite",
-    "build": "tsc -b && vite build && vite build --ssr src/server/index.ts --outDir dist/server --emptyOutDir false",
+    "build": "tsc -b && npm run clean && vite build && vite build --ssr src/server/index.ts --outDir dist/server --emptyOutDir false",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
