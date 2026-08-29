@@ -9,6 +9,7 @@ import {
   generateOutcomeTests,
   runOutcomeSuite,
 } from "../domain/outcomeTests.js";
+import { renderCanonicalRedline } from "../domain/redline.js";
 import type {
   CrashTestRecord,
   InterpretationSet,
@@ -17,7 +18,6 @@ import type {
   VerificationRecord,
   WorkflowState,
 } from "../domain/workflow.js";
-import { canonicalize } from "./canonicalize.js";
 import type {
   ClauseProofDependencies,
   LockOutcomeCommand,
@@ -26,6 +26,14 @@ import type {
   StageRedlineCommand,
   VerifyRedlineCommand,
 } from "./serviceTypes.js";
+import {
+  assertOutcomeLockFingerprint,
+  assertProposalOutcomeLock,
+  assertProposalFingerprint,
+  parseAttachedProposalRule,
+  parseSupportedOutcomeRule,
+  parseSupportedRule,
+} from "./proposalIntegrity.js";
 
 export function assertRevision(
   state: WorkflowState,
@@ -53,6 +61,17 @@ export async function createInterpretationSet(
         "UNKNOWN_CLAUSE",
         "An interpretation cites a clause outside the visible agreement.",
         "Inspect the visible clauses and retry using only their IDs.",
+      );
+    }
+    const citedClauses = new Set(interpretation.clauseIds);
+    if (
+      !citedClauses.has("sla-exclusive-remedy") ||
+      !citedClauses.has("material-breach")
+    ) {
+      throw new DomainError(
+        "INVALID_INPUT",
+        "Each interpretation must cite both clauses that create the modeled ambiguity.",
+        "Cite both sla-exclusive-remedy and material-breach in each interpretation.",
       );
     }
   }
@@ -130,17 +149,22 @@ export async function createOutcomeLock(
   command: LockOutcomeCommand,
 ): Promise<OutcomeLock> {
   assertRevision(state, command.baseRevision);
-  const tests = generateOutcomeTests(state.case.scenario, command.expectedRule);
+  const expectedRule = parseSupportedOutcomeRule(
+    command.expectedRule,
+    state.case.contract.terms.slaThresholdBps,
+  );
+  const tests = generateOutcomeTests(state.case.scenario, expectedRule);
   return {
     id: dependencies.idGenerator.next("outcome-lock"),
     baseRevision: command.baseRevision,
     createdBy: "human-ui",
-    expectedRule: command.expectedRule,
+    sourceCase: state.case,
+    expectedRule,
     tests,
     fingerprint: await dependencies.fingerprintProvider.create({
-      caseId: state.case.id,
+      sourceCase: state.case,
       baseRevision: command.baseRevision,
-      expectedRule: command.expectedRule,
+      expectedRule,
       tests,
     }),
   };
@@ -149,7 +173,7 @@ export async function createOutcomeLock(
 function currentOutcomeLock(
   state: WorkflowState,
   command: StageRedlineCommand,
-) {
+): OutcomeLock {
   const lock = state.outcomeLock;
   if (!lock) {
     throw new DomainError(
@@ -178,35 +202,55 @@ export async function createProposal(
 ): Promise<RedlineProposal> {
   assertRevision(state, command.baseRevision);
   const lock = currentOutcomeLock(state, command);
-  if (canonicalize(lock.expectedRule) !== canonicalize(command.semanticRule)) {
-    throw new DomainError(
-      "RULE_MISMATCH",
-      "The proposed semantic rule does not match the locked outcome.",
-      "Revise the proposal to match every field in the current outcome lock.",
-    );
-  }
-  const knownClauses = new Set(state.case.contract.clauses.map(({ id }) => id));
-  if (command.targetClauseIds.some((id) => !knownClauses.has(id))) {
+  await assertOutcomeLockFingerprint(state, dependencies, lock);
+  const semanticRule = parseSupportedRule(command.semanticRule);
+  if (
+    command.targetClauseIds.length !== 2 ||
+    command.targetClauseIds[0] !== "sla-exclusive-remedy" ||
+    command.targetClauseIds[1] !== "material-breach"
+  ) {
     throw new DomainError(
       "UNKNOWN_CLAUSE",
-      "The proposal targets a clause outside the visible agreement.",
-      "Use only a visible target clause ID.",
+      "The clarification must target the exact clauses that create the ambiguity.",
+      "Target sla-exclusive-remedy followed by material-breach.",
     );
   }
-  return {
+  const originalText = state.case.contract.clauses.find(
+    ({ id }) => id === command.targetClauseIds[0],
+  )?.text;
+  if (!originalText) {
+    throw new DomainError(
+      "UNKNOWN_CLAUSE",
+      "The targeted clause is unavailable in the current agreement.",
+      "Inspect the current agreement before staging the clarification.",
+    );
+  }
+  const proposedText = renderCanonicalRedline(semanticRule);
+  const proposal = {
     id: dependencies.idGenerator.next("proposal"),
-    ...command,
+    baseRevision: command.baseRevision,
+    outcomeLockId: command.outcomeLockId,
+    outcomeLockFingerprint: lock.fingerprint,
+    targetClauseIds: [command.targetClauseIds[0], command.targetClauseIds[1]],
+    originalText,
+    proposedText,
+    semanticRule,
+    rationale: command.rationale,
+  } satisfies Omit<RedlineProposal, "fingerprint">;
+  return {
+    ...proposal,
     fingerprint: await dependencies.fingerprintProvider.create({
-      caseId: state.case.id,
-      ...command,
+      sourceCase: lock.sourceCase,
+      ...proposal,
     }),
   };
 }
 
-export function createVerification(
+export async function createVerification(
   state: WorkflowState,
+  dependencies: ClauseProofDependencies,
   command: VerifyRedlineCommand,
-): VerificationRecord {
+): Promise<VerificationRecord> {
   assertRevision(state, command.baseRevision);
   const proposal = state.proposal;
   if (!proposal || proposal.id !== command.proposalId) {
@@ -217,24 +261,33 @@ export function createVerification(
     );
   }
   const lock = state.outcomeLock;
-  if (!lock || proposal.outcomeLockId !== lock.id) {
+  if (!lock) {
     throw new DomainError(
       "STALE_PROPOSAL",
       "The proposal no longer matches the current outcome lock.",
       "Stage a new proposal against the current outcome lock.",
     );
   }
-  const outcomeSuite = runOutcomeSuite(lock.tests, proposal.semanticRule);
+  assertProposalOutcomeLock(proposal, lock);
+  await assertOutcomeLockFingerprint(state, dependencies, lock);
+  const executableRule = parseAttachedProposalRule(proposal);
+  await assertProposalFingerprint(state, dependencies, proposal);
+  const outcomeSuite = runOutcomeSuite(lock.tests, executableRule);
   const boundaryStrength = measureBoundaryStrength(
     lock.tests,
-    generateRuleMutants(proposal.semanticRule),
+    generateRuleMutants(executableRule),
   );
   return {
     proposalId: proposal.id,
+    proposalFingerprint: proposal.fingerprint,
+    outcomeLockFingerprint: lock.fingerprint,
+    verifiedText: proposal.proposedText,
     outcomeSuite,
     boundaryStrength,
     eligibleForAcceptance:
-      outcomeSuite.passedCount === outcomeSuite.totalCount &&
-      boundaryStrength.killedCount === boundaryStrength.totalCount,
+      outcomeSuite.passedCount === 6 &&
+      outcomeSuite.totalCount === 6 &&
+      boundaryStrength.killedCount === 8 &&
+      boundaryStrength.totalCount === 8,
   };
 }

@@ -59,6 +59,7 @@ export const canonicalCase = deepFreeze(
         { month: "2026-01", uptimeBps: 9_870 },
         { month: "2026-02", uptimeBps: 9_890 },
       ],
+      noticeGiven: true,
       noticeDate: "2026-03-01",
       observedAtDate: "2026-04-01",
       curedAtDate: null,

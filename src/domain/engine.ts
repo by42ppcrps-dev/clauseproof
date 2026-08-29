@@ -85,6 +85,7 @@ function mayTerminate(
     facts.curedAtDate !== null && facts.curedAtDate <= cureDeadline;
   return (
     pathPermitted &&
+    facts.noticeGiven &&
     qualifyingCount >= 2 &&
     facts.observedAtDate >= cureDeadline &&
     !curedInTime

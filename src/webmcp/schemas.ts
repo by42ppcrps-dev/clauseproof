@@ -11,9 +11,9 @@ const toolClauseIdSchema = z.enum([
   "material-breach",
 ]);
 
-const redlineClauseIdSchema = z.enum([
-  "sla-exclusive-remedy",
-  "material-breach",
+const redlineClauseIdsSchema = z.tuple([
+  z.literal("sla-exclusive-remedy"),
+  z.literal("material-breach"),
 ]);
 
 export const inspectContractCaseInputSchema = z.strictObject({
@@ -42,8 +42,7 @@ export const runContractCrashTestInputSchema = z.strictObject({
 export const proposeClarifyingRedlineInputSchema = z.strictObject({
   baseRevision: z.number().int().nonnegative(),
   outcomeLockId: z.string().min(1).max(120),
-  targetClauseIds: z.array(redlineClauseIdSchema).min(1).max(2),
-  proposedText: z.string().min(80).max(900),
+  targetClauseIds: redlineClauseIdsSchema,
   semanticRule: clarificationRuleSchema,
   rationale: z.string().min(20).max(400),
 });

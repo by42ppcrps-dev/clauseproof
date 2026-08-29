@@ -63,6 +63,7 @@ export const scenarioFactsSchema = z.strictObject({
   monthsRemaining: z.number().int().nonnegative().max(120),
   serviceCreditRateBps: basisPointsSchema,
   monthlyUptime: z.array(monthlyUptimeSchema).min(1).max(24),
+  noticeGiven: z.boolean(),
   noticeDate: isoDateSchema,
   observedAtDate: isoDateSchema,
   curedAtDate: isoDateSchema.nullable(),
@@ -91,20 +92,32 @@ export const commercialOutcomeSchema = z.strictObject({
   reasons: z.array(z.string().min(1)).min(1),
 });
 
-export const clarificationRuleSchema = z.strictObject({
-  trigger: z.strictObject({
-    metric: z.literal("monthly_uptime_percentage"),
-    comparator: z.literal("below"),
-    thresholdBps: basisPointsSchema,
-    requiredOccurrences: z.number().int().positive().max(12),
-    rollingWindowMonths: z.number().int().positive().max(24),
-  }),
-  noticeRequired: z.literal(true),
-  cureDays: z.number().int().nonnegative().max(365),
-  effect: z.literal("customer_may_terminate_without_penalty"),
-  preserveAccruedCredits: z.boolean(),
-  overridesClauseIds: z.array(clauseIdSchema).min(1).max(3),
-});
+export const clarificationRuleSchema = z
+  .strictObject({
+    trigger: z.strictObject({
+      metric: z.literal("monthly_uptime_percentage"),
+      comparator: z.literal("below"),
+      thresholdBps: basisPointsSchema.min(1),
+      requiredOccurrences: z.number().int().min(2).max(4),
+      rollingWindowMonths: z.number().int().min(2).max(18),
+    }),
+    noticeRequired: z.literal(true),
+    cureDays: z.number().int().min(1).max(60),
+    effect: z.literal("customer_may_terminate_without_penalty"),
+    preserveAccruedCredits: z.boolean(),
+    overridesClauseIds: z.tuple([
+      z.literal("sla-exclusive-remedy"),
+      z.literal("material-breach"),
+    ]),
+  })
+  .refine(
+    ({ trigger }) => trigger.rollingWindowMonths >= trigger.requiredOccurrences,
+    {
+      message:
+        "The rolling window must be at least as large as the required occurrence count.",
+      path: ["trigger", "rollingWindowMonths"],
+    },
+  );
 
 export const outcomeTestSchema = z.strictObject({
   id: z.string().min(1).max(80),
@@ -112,7 +125,7 @@ export const outcomeTestSchema = z.strictObject({
   facts: scenarioFactsSchema,
   expected: z.strictObject({
     terminationAvailable: z.boolean(),
-    minimumCreditsCents: moneyCentsSchema.optional(),
+    serviceCreditsCents: moneyCentsSchema,
   }),
 });
 

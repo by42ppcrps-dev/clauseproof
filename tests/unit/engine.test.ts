@@ -70,4 +70,15 @@ describe("interpretation engine", () => {
       ],
     });
   });
+
+  it("does not open the material-breach path before written notice is given", () => {
+    const outcome = evaluateInterpretation(
+      canonicalCase.contract,
+      { ...canonicalCase.scenario, noticeGiven: false },
+      canonicalCustomerInterpretation,
+    );
+
+    expect(outcome.terminationAvailable).toBe(false);
+    expect(outcome.futureFeesCents).toBe(8_000_000);
+  });
 });

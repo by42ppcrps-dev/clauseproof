@@ -32,6 +32,17 @@ for (const file of await sourceFiles(sourceRoot)) {
     }
   }
 
+  if (
+    relative.startsWith("src/webmcp/") &&
+    /\bClauseProofStore\b|humanAuthority|\.(?:lockOutcome|acceptRedline|reset)\s*\(/.test(
+      text,
+    )
+  ) {
+    violations.push(
+      `${relative}: WebMCP imports a human-capable authority surface`,
+    );
+  }
+
   if (/\b(TODO|FIXME|HACK)\b|@ts-ignore|:\s*any\b|<any>/.test(text)) {
     violations.push(`${relative}: prohibited source marker or explicit any`);
   }

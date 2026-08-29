@@ -1,6 +1,5 @@
 import type { DomainErrorCode } from "../domain/errors.js";
 import type { FingerprintProvider } from "./fingerprint.js";
-import type { ClauseId } from "../domain/model.js";
 import type {
   ClarificationRule,
   ModeledInterpretation,
@@ -46,8 +45,7 @@ export interface LockOutcomeCommand {
 export interface StageRedlineCommand {
   baseRevision: number;
   outcomeLockId: string;
-  targetClauseIds: ClauseId[];
-  proposedText: string;
+  targetClauseIds: ClarificationRule["overridesClauseIds"];
   semanticRule: ClarificationRule;
   rationale: string;
 }

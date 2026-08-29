@@ -6,6 +6,7 @@ import {
   createInitialWorkflowState,
   lockExpectedOutcome,
   markVerified,
+  recoverOutcomeLockAfterIntegrityFailure,
   showCrashTest,
   stageInterpretationSet,
   stageProposal,
@@ -13,8 +14,8 @@ import {
   type WorkflowState,
 } from "../domain/workflow.js";
 import { hasHumanAuthority, type HumanUiActor } from "./humanAuthority.js";
+import { assertAcceptanceProof } from "./acceptanceProof.js";
 import {
-  assertRevision,
   createCrashTest,
   createInterpretationSet,
   createOutcomeLock,
@@ -38,6 +39,7 @@ import type {
   VerifyRedlineCommand,
   VerifyRedlineData,
 } from "./serviceTypes.js";
+import { ownValue } from "./stateOwnership.js";
 
 export type AgentOrManualActor = Extract<
   Actor,
@@ -51,7 +53,7 @@ export class ClauseProofService {
     private readonly dependencies: ClauseProofDependencies,
     initialState: WorkflowState = createInitialWorkflowState(canonicalCase),
   ) {
-    this.state = initialState;
+    this.state = ownValue(initialState);
   }
 
   public inspectCase(): WorkflowState {
@@ -73,7 +75,10 @@ export class ClauseProofService {
       outcome,
       summary,
     };
-    this.state = { ...this.state, events: [...this.state.events, event] };
+    this.state = ownValue({
+      ...this.state,
+      events: [...this.state.events, event],
+    });
   }
 
   private success<T>(
@@ -83,7 +88,7 @@ export class ClauseProofService {
     data: T,
   ): ServiceResult<T> {
     this.appendEvent(actor, action, "completed", summary);
-    return { ok: true, data, state: this.state };
+    return { ok: true, data: ownValue(data), state: this.state };
   }
 
   private failure<T>(
@@ -122,7 +127,9 @@ export class ClauseProofService {
         this.dependencies,
         command,
       );
-      this.state = stageInterpretationSet(this.state, interpretationSet);
+      this.state = ownValue(
+        stageInterpretationSet(this.state, interpretationSet),
+      );
       return this.success(
         actor,
         "stage_interpretations",
@@ -140,7 +147,7 @@ export class ClauseProofService {
   ): Promise<ServiceResult<RunCrashTestData>> {
     try {
       const crashTest = createCrashTest(this.state, command);
-      this.state = showCrashTest(this.state, crashTest);
+      this.state = ownValue(showCrashTest(this.state, crashTest));
       return this.success(
         actor,
         "run_contract_crash_test",
@@ -166,7 +173,7 @@ export class ClauseProofService {
         this.dependencies,
         command,
       );
-      this.state = lockExpectedOutcome(this.state, outcomeLock);
+      this.state = ownValue(lockExpectedOutcome(this.state, outcomeLock));
       return this.success(
         auditActor,
         "lock_outcome",
@@ -188,7 +195,7 @@ export class ClauseProofService {
         this.dependencies,
         command,
       );
-      this.state = stageProposal(this.state, proposal);
+      this.state = ownValue(stageProposal(this.state, proposal));
       return this.success(
         actor,
         "propose_clarifying_redline",
@@ -205,8 +212,12 @@ export class ClauseProofService {
     command: VerifyRedlineCommand,
   ): Promise<ServiceResult<VerifyRedlineData>> {
     try {
-      const verification = createVerification(this.state, command);
-      this.state = markVerified(this.state, verification);
+      const verification = await createVerification(
+        this.state,
+        this.dependencies,
+        command,
+      );
+      this.state = ownValue(markVerified(this.state, verification));
       return this.success(
         actor,
         "verify_contract_tests",
@@ -214,6 +225,17 @@ export class ClauseProofService {
         { verification },
       );
     } catch (error) {
+      if (
+        error instanceof DomainError &&
+        this.state.phase === "redline_staged" &&
+        ["RULE_MISMATCH", "STALE_PROPOSAL", "STALE_OUTCOME_LOCK"].includes(
+          error.code,
+        )
+      ) {
+        this.state = ownValue(
+          recoverOutcomeLockAfterIntegrityFailure(this.state),
+        );
+      }
       return this.failure(error, actor, "verify_contract_tests");
     }
   }
@@ -227,18 +249,8 @@ export class ClauseProofService {
       : { kind: "system" };
     try {
       this.requireHumanAuthority(actor, "accept a redline");
-      assertRevision(this.state, command.baseRevision);
-      if (
-        !this.state.proposal ||
-        this.state.proposal.id !== command.proposalId
-      ) {
-        throw new DomainError(
-          "UNKNOWN_PROPOSAL",
-          "The proposal is not current.",
-          "Inspect and verify the current proposal before accepting it.",
-        );
-      }
-      this.state = acceptProposal(this.state);
+      await assertAcceptanceProof(this.state, this.dependencies, command);
+      this.state = ownValue(acceptProposal(this.state));
       return this.success(
         auditActor,
         "accept_redline",
@@ -258,7 +270,7 @@ export class ClauseProofService {
       : { kind: "system" };
     try {
       this.requireHumanAuthority(actor, "reset the case");
-      this.state = createInitialWorkflowState(canonicalCase);
+      this.state = ownValue(createInitialWorkflowState(canonicalCase));
       return this.success(
         auditActor,
         "reset_demo",

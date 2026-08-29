@@ -2,7 +2,7 @@ import { ZodError } from "zod";
 
 import type { ModeledInterpretation } from "../domain/schemas.js";
 import type { WebMcpToolName, WorkflowPhase } from "../domain/model.js";
-import type { ClauseProofStore } from "../state/createStore.js";
+import type { AgentClauseProofPort } from "../state/agentPort.js";
 import {
   invalidInputFailure,
   serviceFailure,
@@ -16,6 +16,15 @@ import {
   stageInterpretationsInputSchema,
   verifyContractTestsInputSchema,
 } from "./schemas.js";
+import {
+  failedTestEvidence,
+  semanticRuleSummary,
+  survivingBoundaryIds,
+  type CrashToolData,
+  type ProposalToolData,
+  type StageToolData,
+  type VerificationToolData,
+} from "./normalizers.js";
 
 function nextAction(phase: WorkflowPhase): RecoveryAction | null {
   const actions: Partial<Record<WorkflowPhase, RecoveryAction>> = {
@@ -34,7 +43,7 @@ function nextAction(phase: WorkflowPhase): RecoveryAction | null {
     outcome_locked: {
       action: "propose_clarifying_redline",
       reason:
-        "Stage language that matches the current human-owned outcome lock.",
+        "Stage or revise a structured rule against the human-owned outcome lock.",
     },
     redline_staged: {
       action: "verify_contract_tests",
@@ -44,7 +53,7 @@ function nextAction(phase: WorkflowPhase): RecoveryAction | null {
   return actions[phase] ?? null;
 }
 
-function parseFailure(store: ClauseProofStore, error: unknown) {
+function parseFailure(store: AgentClauseProofPort, error: unknown) {
   const message =
     error instanceof ZodError
       ? error.issues.map(({ message }) => message).join("; ")
@@ -59,39 +68,7 @@ function agentActor(toolName: WebMcpToolName) {
   return { kind: "agent-tool" as const, toolName };
 }
 
-interface StageToolData {
-  interpretationSetId: string;
-  baseRevision: number;
-  readingLabels: string[];
-}
-
-interface CrashToolData {
-  interpretationSetId: string;
-  branches: {
-    serviceCreditsCents: number;
-    terminationAvailable: boolean;
-    futureFeesCents: number;
-  }[];
-  divergentFields: string[];
-  totalFinancialDivergenceCents: number;
-}
-
-interface ProposalToolData {
-  proposalId: string;
-  targetClauseIds: string[];
-  stagedOnly: true;
-}
-
-interface VerificationToolData {
-  outcomeTestsPassed: number;
-  outcomeTestsTotal: number;
-  failedTestIds: string[];
-  boundaryRulesCaught: number;
-  boundaryRulesTotal: number;
-  eligibleForHumanAcceptance: boolean;
-}
-
-export function createToolHandlers(store: ClauseProofStore) {
+export function createToolHandlers(store: AgentClauseProofPort) {
   return {
     async inspect_contract_case(input: unknown): Promise<ToolResult<unknown>> {
       try {
@@ -119,6 +96,7 @@ export function createToolHandlers(store: ClauseProofStore) {
                   ...common,
                   interpretationSetId: state.interpretationSet?.id ?? null,
                   outcomeLockId: state.outcomeLock?.id ?? null,
+                  lockedExpectedRule: state.outcomeLock?.expectedRule ?? null,
                   proposalId: state.proposal?.id ?? null,
                 }
               : {
@@ -227,6 +205,11 @@ export function createToolHandlers(store: ClauseProofStore) {
           data: {
             proposalId: result.data.proposal.id,
             targetClauseIds: result.data.proposal.targetClauseIds,
+            originalText: result.data.proposal.originalText,
+            proposedText: result.data.proposal.proposedText,
+            semanticRuleSummary: semanticRuleSummary(
+              result.data.proposal.semanticRule,
+            ),
             stagedOnly: true,
           },
           next: nextAction(result.state.phase),
@@ -252,14 +235,19 @@ export function createToolHandlers(store: ClauseProofStore) {
           data: {
             outcomeTestsPassed: verification.outcomeSuite.passedCount,
             outcomeTestsTotal: verification.outcomeSuite.totalCount,
-            failedTestIds: verification.outcomeSuite.results
-              .filter(({ passed }) => !passed)
-              .map(({ testId }) => testId),
+            failedTestCounterexamples: failedTestEvidence(verification),
             boundaryRulesCaught: verification.boundaryStrength.killedCount,
             boundaryRulesTotal: verification.boundaryStrength.totalCount,
+            boundarySurvivors: survivingBoundaryIds(verification),
             eligibleForHumanAcceptance: verification.eligibleForAcceptance,
           },
-          next: nextAction(result.state.phase),
+          next: verification.eligibleForAcceptance
+            ? nextAction(result.state.phase)
+            : {
+                action: "propose_clarifying_redline",
+                reason:
+                  "Revise the rule from these failures, then verify it again.",
+              },
         };
       } catch (error) {
         return parseFailure(store, error);

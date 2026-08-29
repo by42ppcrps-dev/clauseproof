@@ -1,5 +1,5 @@
 import type { WorkflowPhase } from "../domain/model.js";
-import type { ClauseProofStore } from "../state/createStore.js";
+import type { AgentClauseProofPort } from "../state/agentPort.js";
 import { createToolDefinitions } from "./definitions.js";
 import { createToolHandlers } from "./handlers.js";
 import type { ModelContextLike, RegisteredTool } from "./types.js";
@@ -24,7 +24,7 @@ export class WebMcpRegistry {
 
   public constructor(
     private readonly context: ModelContextLike,
-    private readonly store: ClauseProofStore,
+    private readonly store: AgentClauseProofPort,
     private readonly mode: "dynamic" | "static" = "dynamic",
     private readonly onError: (error: unknown) => void = (error) =>
       console.error("WebMCP registration failed.", error),

@@ -16,12 +16,12 @@ describe("boundary strength", () => {
 
   it("generates exactly the eight required altered rules", () => {
     expect(mutants.map(({ id }) => id)).toEqual([
-      "occurrences-one",
-      "occurrences-three",
-      "window-twelve",
-      "cure-zero",
-      "cure-thirty",
-      "credits-not-preserved",
+      "occurrences-lower",
+      "occurrences-higher",
+      "window-expanded",
+      "cure-shorter",
+      "cure-longer",
+      "credits-toggled",
       "termination-removed",
       "comparator-inclusive",
     ]);
@@ -39,13 +39,38 @@ describe("boundary strength", () => {
         caughtByTestIds,
       ]),
     );
-    expect(caughtBy["occurrences-one"]).toContain("one-miss-only");
-    expect(caughtBy["occurrences-three"]).toContain("two-misses-uncured");
-    expect(caughtBy["window-twelve"]).toContain("outside-window");
-    expect(caughtBy["cure-zero"]).toContain("cure-period-open");
-    expect(caughtBy["cure-thirty"]).toContain("two-misses-uncured");
-    expect(caughtBy["credits-not-preserved"]).toContain("two-misses-uncured");
-    expect(caughtBy["termination-removed"]).toContain("two-misses-uncured");
+    expect(caughtBy["occurrences-lower"]).toContain("insufficient-occurrences");
+    expect(caughtBy["occurrences-higher"]).toContain("positive-trigger");
+    expect(caughtBy["window-expanded"]).toContain("outside-window");
+    expect(caughtBy["cure-shorter"]).toContain("cure-period-open");
+    expect(caughtBy["cure-longer"]).toContain("positive-trigger");
+    expect(caughtBy["credits-toggled"]).toContain("positive-trigger");
+    expect(caughtBy["termination-removed"]).toContain("positive-trigger");
     expect(caughtBy["comparator-inclusive"]).toContain("threshold-equality");
+  });
+
+  it("catches all eight nearby mutations for a custom supported lock", () => {
+    const customRule = {
+      ...canonicalOutcomeRule,
+      trigger: {
+        ...canonicalOutcomeRule.trigger,
+        thresholdBps: 9_900,
+        requiredOccurrences: 3,
+        rollingWindowMonths: 8,
+      },
+      cureDays: 14,
+      preserveAccruedCredits: false,
+    };
+    const customTests = generateOutcomeTests(
+      canonicalCase.scenario,
+      customRule,
+    );
+    const result = measureBoundaryStrength(
+      customTests,
+      generateRuleMutants(customRule),
+    );
+
+    expect(result.killedCount).toBe(8);
+    expect(result.totalCount).toBe(8);
   });
 });

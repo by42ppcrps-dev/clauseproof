@@ -11,10 +11,8 @@ const manualActor = { kind: "manual-fallback" } as const;
 
 const sampleRedline = {
   targetClauseIds: ["sla-exclusive-remedy", "material-breach"] as const,
-  proposedText:
-    "Notwithstanding the exclusive-remedy provision, Customer may terminate without penalty after two Monthly Uptime Percentage results below 99.5% within a rolling six-month period, if Customer gives written notice and the failures remain uncured for ten days after notice. Accrued service credits remain payable following termination.",
   rationale:
-    "This clarification preserves service credits while making the repeated-failure, rolling-window, notice, and cure boundaries explicit.",
+    "This manual fallback stages the person's locked semantic rule so the application can generate exact contract text and test every boundary.",
 };
 
 export function useClauseProof() {
@@ -54,7 +52,6 @@ export function useClauseProof() {
         baseRevision: state.case.contract.revision,
         outcomeLockId: outcomeLock.id,
         targetClauseIds: [...sampleRedline.targetClauseIds],
-        proposedText: sampleRedline.proposedText,
         semanticRule: outcomeLock.expectedRule,
         rationale: sampleRedline.rationale,
       }),

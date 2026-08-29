@@ -36,45 +36,50 @@ export function generateRuleMutants(rule: ClarificationRule): RuleMutant[] {
   return [
     triggerMutant(
       rule,
-      "occurrences-one",
-      "Requires one miss instead of two.",
+      "occurrences-lower",
+      `Requires ${rule.trigger.requiredOccurrences - 1} misses instead of ${rule.trigger.requiredOccurrences}.`,
       {
         ...rule.trigger,
-        requiredOccurrences: 1,
+        requiredOccurrences: rule.trigger.requiredOccurrences - 1,
       },
     ),
     triggerMutant(
       rule,
-      "occurrences-three",
-      "Requires three misses instead of two.",
+      "occurrences-higher",
+      `Requires ${rule.trigger.requiredOccurrences + 1} misses instead of ${rule.trigger.requiredOccurrences}.`,
       {
         ...rule.trigger,
-        requiredOccurrences: 3,
+        requiredOccurrences: rule.trigger.requiredOccurrences + 1,
       },
     ),
     triggerMutant(
       rule,
-      "window-twelve",
-      "Uses a twelve-month rolling window.",
+      "window-expanded",
+      `Uses a ${rule.trigger.rollingWindowMonths + 1}-month rolling window.`,
       {
         ...rule.trigger,
-        rollingWindowMonths: 12,
+        rollingWindowMonths: rule.trigger.rollingWindowMonths + 1,
       },
     ),
     {
-      id: "cure-zero",
-      description: "Uses a zero-day cure period.",
-      rule: { ...rule, cureDays: 0 },
+      id: "cure-shorter",
+      description: `Uses a ${rule.cureDays - 1}-day cure period.`,
+      rule: { ...rule, cureDays: rule.cureDays - 1 },
     },
     {
-      id: "cure-thirty",
-      description: "Uses a thirty-day cure period.",
-      rule: { ...rule, cureDays: 30 },
+      id: "cure-longer",
+      description: `Uses a ${rule.cureDays + 1}-day cure period.`,
+      rule: { ...rule, cureDays: rule.cureDays + 1 },
     },
     {
-      id: "credits-not-preserved",
-      description: "Does not preserve accrued service credits.",
-      rule: { ...rule, preserveAccruedCredits: false },
+      id: "credits-toggled",
+      description: rule.preserveAccruedCredits
+        ? "Does not preserve accrued service credits."
+        : "Preserves accrued service credits.",
+      rule: {
+        ...rule,
+        preserveAccruedCredits: !rule.preserveAccruedCredits,
+      },
     },
     {
       id: "termination-removed",

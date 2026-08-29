@@ -2,6 +2,7 @@ import type { BoundaryStrengthResult } from "./boundaryStrength.js";
 import { DomainError, requirePhase } from "./errors.js";
 import type { OutcomeDivergence } from "./divergence.js";
 import type { OutcomeSuiteResult } from "./outcomeTests.js";
+import { parseCanonicalRedline, renderCanonicalRedline } from "./redline.js";
 import type {
   Actor,
   CanonicalCase,
@@ -10,7 +11,7 @@ import type {
   ModeledInterpretation,
   OutcomeTest,
 } from "./schemas.js";
-import type { ClauseId, WorkflowPhase } from "./model.js";
+import type { WorkflowPhase } from "./model.js";
 
 export interface InterpretationSet {
   id: string;
@@ -30,6 +31,7 @@ export interface OutcomeLock {
   id: string;
   baseRevision: number;
   createdBy: "human-ui";
+  sourceCase: CanonicalCase;
   expectedRule: ClarificationRule;
   tests: OutcomeTest[];
   fingerprint: string;
@@ -39,7 +41,9 @@ export interface RedlineProposal {
   id: string;
   baseRevision: number;
   outcomeLockId: string;
-  targetClauseIds: ClauseId[];
+  outcomeLockFingerprint: string;
+  targetClauseIds: ClarificationRule["overridesClauseIds"];
+  originalText: string;
   proposedText: string;
   semanticRule: ClarificationRule;
   rationale: string;
@@ -48,6 +52,9 @@ export interface RedlineProposal {
 
 export interface VerificationRecord {
   proposalId: string;
+  proposalFingerprint: string;
+  outcomeLockFingerprint: string;
+  verifiedText: string;
   outcomeSuite: OutcomeSuiteResult;
   boundaryStrength: BoundaryStrengthResult;
   eligibleForAcceptance: boolean;
@@ -132,7 +139,22 @@ export function markVerified(
   verification: VerificationRecord,
 ): WorkflowState {
   requirePhase(state.phase, "redline_staged", "Verifying a redline");
-  return { ...state, phase: "verified", verification };
+  return {
+    ...state,
+    phase: verification.eligibleForAcceptance ? "verified" : "outcome_locked",
+    verification,
+  };
+}
+
+export function recoverOutcomeLockAfterIntegrityFailure(
+  state: WorkflowState,
+): WorkflowState {
+  requirePhase(
+    state.phase,
+    "redline_staged",
+    "Recovering from an invalid proposal",
+  );
+  return { ...state, phase: "outcome_locked", verification: null };
 }
 
 export function acceptProposal(state: WorkflowState): WorkflowState {
@@ -152,9 +174,31 @@ export function acceptProposal(state: WorkflowState): WorkflowState {
     );
   }
   const proposal = state.proposal;
+  const verification = state.verification;
+  if (
+    verification.proposalId !== proposal.id ||
+    verification.proposalFingerprint !== proposal.fingerprint ||
+    verification.outcomeLockFingerprint !== proposal.outcomeLockFingerprint ||
+    verification.verifiedText !== proposal.proposedText
+  ) {
+    throw new DomainError(
+      "STALE_PROPOSAL",
+      "The proposal changed after verification.",
+      "Stage and verify the current proposal again.",
+    );
+  }
+  const executableRule = parseCanonicalRedline(proposal.proposedText);
+  if (renderCanonicalRedline(proposal.semanticRule) !== proposal.proposedText) {
+    throw new DomainError(
+      "RULE_MISMATCH",
+      "The staged text and structured rule do not describe the same behavior.",
+      "Stage a new clarification from a supported structured rule.",
+    );
+  }
+  const verifiedText = renderCanonicalRedline(executableRule);
   const clauses = state.case.contract.clauses.map((clause) =>
     clause.id === proposal.targetClauseIds[0]
-      ? { ...clause, text: proposal.proposedText }
+      ? { ...clause, text: verifiedText }
       : clause,
   );
   return {

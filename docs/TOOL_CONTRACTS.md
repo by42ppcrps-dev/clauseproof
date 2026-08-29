@@ -8,7 +8,7 @@ Reads the current revision, phase, visible clauses, scenario, and next action. I
 
 ## `stage_interpretations`
 
-Stages exactly two clause-cited modeled interpretations against the current revision. Each interpretation supplies a short label, one to three known clause IDs, constrained remedy and breach semantics, and a concise rationale. The application rejects unknown clauses, identical semantic readings, stale revisions, unsupported facts, and readings that do not produce distinct outcomes.
+Stages exactly two clause-cited modeled interpretations against the current revision. Each interpretation supplies a short label, constrained remedy and breach semantics, a concise rationale, and citations to both `sla-exclusive-remedy` and `material-breach` (with the SLA commitment optionally included). The application rejects unknown or incomplete citations, identical semantic readings, stale revisions, unsupported facts, and readings that do not produce distinct outcomes.
 
 ## `run_contract_crash_test`
 
@@ -16,11 +16,11 @@ Runs the current interpretation set against the one visible scenario. It accepts
 
 ## `propose_clarifying_redline`
 
-After a person locks the expected outcome, stages proposed text and a matching structured rule against one or both relevant clauses. It validates the current revision and human-owned outcome-lock identifier. It stages only and cannot accept.
+After a person locks the expected outcome, stages a supported structured rule against the exact ordered pair `sla-exclusive-remedy`, `material-breach`. The agent cannot submit arbitrary proposal text: the application deterministically generates the canonical clause wording from the rule. It validates the current revision, human-owned outcome-lock identifier, and the lock's exact contract-and-scenario snapshot. A supported but wrong rule may be staged so the tests can return repair evidence. The tool stages only and cannot accept.
 
 ## `verify_contract_tests`
 
-Runs all six outcome tests and eight boundary variants against the current proposal. It validates the current revision, proposal identifier, and fingerprints. It reports pass counts, failed identifiers, boundary strength, and eligibility for human acceptance. It cannot accept.
+Parses the exact generated wording back into executable semantics, checks exact renderer/parser agreement, and runs all six outcome tests plus eight altered-rule challenges against that reconstructed rule. It validates the current revision, outcome-lock fingerprint, proposal identifier, generated text, and proposal fingerprint. It reports pass counts, exact failed expectations, surviving altered rules, and eligibility for human acceptance. A failed verification preserves the evidence and returns the workflow to `outcome_locked` so a replacement may be staged. It cannot accept; human acceptance independently recomputes the same proof and requires exact agreement with the stored verification.
 
 ## Phase surface
 
@@ -36,8 +36,10 @@ Runs all six outcome tests and eight boundary variants against the current propo
 
 Static fallback mode may register all five, but every handler continues to enforce the same workflow rules.
 
+WebMCP handlers receive a restricted agent port whose interface and frozen runtime object omit `lockOutcome`, `acceptRedline`, and `reset`; the registry is not handed the human-capable store.
+
 ## Stable failures
 
-Failures use the documented codes `INVALID_INPUT`, `INVALID_PHASE`, `STALE_REVISION`, `UNKNOWN_CLAUSE`, `INTERPRETATIONS_NOT_DISTINCT`, `UNKNOWN_INTERPRETATION_SET`, `OUTCOME_NOT_LOCKED`, `STALE_OUTCOME_LOCK`, `RULE_MISMATCH`, `UNKNOWN_PROPOSAL`, `STALE_PROPOSAL`, `TESTS_FAILED`, `ALREADY_ACCEPTED`, and `INTERNAL_ERROR`.
+Failures use the documented codes `INVALID_INPUT`, `INVALID_PHASE`, `STALE_REVISION`, `UNKNOWN_CLAUSE`, `INTERPRETATIONS_NOT_DISTINCT`, `UNKNOWN_INTERPRETATION_SET`, `OUTCOME_NOT_LOCKED`, `STALE_OUTCOME_LOCK`, `RULE_MISMATCH`, `UNKNOWN_PROPOSAL`, `STALE_PROPOSAL`, `TESTS_FAILED`, and `INTERNAL_ERROR`. `ALREADY_ACCEPTED` remains reserved in the shared error vocabulary; the current phase-gated flow does not emit it.
 
 No failure exposes a stack trace. Every recoverable failure gives exactly one clear recovery action.

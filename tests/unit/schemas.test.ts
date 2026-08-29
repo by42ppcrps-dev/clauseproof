@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   actorSchema,
+  clarificationRuleSchema,
   interpretationSemanticsSchema,
   scenarioFactsSchema,
 } from "../../src/domain/schemas.js";
+import { canonicalOutcomeRule } from "../../src/domain/seed.js";
 
 const validScenario = {
   id: "scenario-canonical",
@@ -15,6 +17,7 @@ const validScenario = {
     { month: "2026-01", uptimeBps: 9_870 },
     { month: "2026-02", uptimeBps: 9_890 },
   ],
+  noticeGiven: true,
   noticeDate: "2026-03-01",
   observedAtDate: "2026-04-01",
   curedAtDate: null,
@@ -62,5 +65,50 @@ describe("domain schemas", () => {
       }),
     ).toEqual({ kind: "agent-tool", toolName: "stage_interpretations" });
     expect(() => actorSchema.parse({ kind: "agent-tool" })).toThrow();
+  });
+
+  it("constrains locks to ranges the six generated tests can prove", () => {
+    expect(
+      clarificationRuleSchema.parse({
+        ...canonicalOutcomeRule,
+        trigger: {
+          ...canonicalOutcomeRule.trigger,
+          requiredOccurrences: 4,
+          rollingWindowMonths: 18,
+        },
+        cureDays: 60,
+      }),
+    ).toBeDefined();
+    expect(() =>
+      clarificationRuleSchema.parse({
+        ...canonicalOutcomeRule,
+        trigger: {
+          ...canonicalOutcomeRule.trigger,
+          requiredOccurrences: 1,
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      clarificationRuleSchema.parse({
+        ...canonicalOutcomeRule,
+        trigger: {
+          ...canonicalOutcomeRule.trigger,
+          requiredOccurrences: 4,
+          rollingWindowMonths: 3,
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      clarificationRuleSchema.parse({
+        ...canonicalOutcomeRule,
+        cureDays: 0,
+      }),
+    ).toThrow();
+    expect(() =>
+      clarificationRuleSchema.parse({
+        ...canonicalOutcomeRule,
+        overridesClauseIds: ["material-breach", "sla-exclusive-remedy"],
+      }),
+    ).toThrow();
   });
 });

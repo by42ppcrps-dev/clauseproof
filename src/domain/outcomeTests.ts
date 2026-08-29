@@ -1,4 +1,5 @@
 import type { ClarificationEffect, ComparisonOperator } from "./model.js";
+import { monthIndex } from "./calendarMonth.js";
 import type {
   ClarificationRule,
   CommercialOutcome,
@@ -6,11 +7,12 @@ import type {
   ScenarioFacts,
 } from "./schemas.js";
 import {
-  addDays,
   calculateCureDeadline,
   calculateServiceCredits,
   qualifyingMonths,
 } from "./engine.js";
+
+export { generateOutcomeTests } from "./outcomeTestCases.js";
 
 export type ExecutableClarificationRule = Omit<
   ClarificationRule,
@@ -36,28 +38,14 @@ export interface OutcomeSuiteResult {
   totalCount: number;
 }
 
-function monthIndex(month: string): number {
-  const match = /^(\d{4})-(\d{2})$/.exec(month);
-  if (!match) throw new RangeError(`Invalid month: ${month}`);
-  return Number(match[1]) * 12 + Number(match[2]) - 1;
-}
-
-function formatMonth(index: number): string {
-  const year = Math.floor(index / 12);
-  const month = (index % 12) + 1;
-  return `${year}-${String(month).padStart(2, "0")}`;
-}
-
-function addMonths(month: string, count: number): string {
-  return formatMonth(monthIndex(month) + count);
-}
-
 export function hasOccurrencesWithinWindow(
   months: string[],
   requiredOccurrences: number,
   rollingWindowMonths: number,
 ): boolean {
-  const indices = months.map(monthIndex).sort((left, right) => left - right);
+  const indices = [...new Set(months.map(monthIndex))].sort(
+    (left, right) => left - right,
+  );
   return indices.some((start) => {
     const lastIncluded = start + rollingWindowMonths - 1;
     return (
@@ -69,12 +57,14 @@ export function hasOccurrencesWithinWindow(
 
 function ruleReasons(
   occurrenceTrigger: boolean,
+  noticeSatisfied: boolean,
   cureElapsed: boolean,
   curedInTime: boolean,
   terminationAvailable: boolean,
 ): string[] {
   if (!occurrenceTrigger)
     return ["The required occurrence pattern is not present."];
+  if (!noticeSatisfied) return ["Required written notice was not given."];
   if (!cureElapsed) return ["The cure period is still open."];
   if (curedInTime) return ["The failure was cured before the deadline."];
   if (!terminationAvailable)
@@ -99,11 +89,13 @@ export function evaluateClarificationRule(
     rule.trigger.rollingWindowMonths,
   );
   const cureDeadline = calculateCureDeadline(facts.noticeDate, rule.cureDays);
+  const noticeSatisfied = !rule.noticeRequired || facts.noticeGiven;
   const cureElapsed = facts.observedAtDate >= cureDeadline;
   const curedInTime =
     facts.curedAtDate !== null && facts.curedAtDate <= cureDeadline;
   const terminationAvailable =
     occurrenceTrigger &&
+    noticeSatisfied &&
     cureElapsed &&
     !curedInTime &&
     rule.effect === "customer_may_terminate_without_penalty";
@@ -122,119 +114,12 @@ export function evaluateClarificationRule(
     cureDeadline,
     reasons: ruleReasons(
       occurrenceTrigger,
+      noticeSatisfied,
       cureElapsed,
       curedInTime,
       terminationAvailable,
     ),
   };
-}
-
-function uptime(month: string, uptimeBps: number) {
-  return { month, uptimeBps };
-}
-
-function scenario(
-  base: ScenarioFacts,
-  id: string,
-  monthlyUptime: ScenarioFacts["monthlyUptime"],
-  observedAtDate: string,
-  curedAtDate: string | null,
-): ScenarioFacts {
-  return { ...base, id, monthlyUptime, observedAtDate, curedAtDate };
-}
-
-export function generateOutcomeTests(
-  base: ScenarioFacts,
-  rule: ClarificationRule,
-): OutcomeTest[] {
-  const below = rule.trigger.thresholdBps - 60;
-  const firstMonth = base.monthlyUptime[0]?.month ?? "2026-01";
-  const secondMonth = addMonths(firstMonth, 1);
-  const twoMisses = [uptime(firstMonth, below), uptime(secondMonth, below)];
-  const afterCure = addDays(base.noticeDate, rule.cureDays + 1);
-  const positiveFacts = scenario(base, "positive", twoMisses, afterCure, null);
-  const minimumCreditsCents = calculateServiceCredits(
-    positiveFacts,
-    rule.trigger.thresholdBps,
-    rule.trigger.comparator,
-  );
-  return [
-    {
-      id: "two-misses-uncured",
-      name: "Two qualifying misses remain uncured after the deadline",
-      facts: positiveFacts,
-      expected: { terminationAvailable: true, minimumCreditsCents },
-    },
-    {
-      id: "one-miss-only",
-      name: "One qualifying miss is insufficient",
-      facts: scenario(
-        base,
-        "one-miss",
-        [uptime(firstMonth, below)],
-        afterCure,
-        null,
-      ),
-      expected: { terminationAvailable: false },
-    },
-    {
-      id: "outside-window",
-      name: "Misses eight months apart are outside the rolling window",
-      facts: scenario(
-        base,
-        "outside-window",
-        [
-          uptime(firstMonth, below),
-          uptime(
-            addMonths(firstMonth, rule.trigger.rollingWindowMonths + 2),
-            below,
-          ),
-        ],
-        afterCure,
-        null,
-      ),
-      expected: { terminationAvailable: false },
-    },
-    {
-      id: "cure-period-open",
-      name: "The cure period remains open on day five",
-      facts: scenario(
-        base,
-        "cure-open",
-        twoMisses,
-        addDays(base.noticeDate, Math.floor(rule.cureDays / 2)),
-        null,
-      ),
-      expected: { terminationAvailable: false },
-    },
-    {
-      id: "cured-in-time",
-      name: "A cure on day nine prevents termination",
-      facts: scenario(
-        base,
-        "cured-in-time",
-        twoMisses,
-        afterCure,
-        addDays(base.noticeDate, Math.max(0, rule.cureDays - 1)),
-      ),
-      expected: { terminationAvailable: false },
-    },
-    {
-      id: "threshold-equality",
-      name: "A month exactly at the threshold is not below it",
-      facts: scenario(
-        base,
-        "threshold-equality",
-        [
-          uptime(firstMonth, rule.trigger.thresholdBps),
-          uptime(secondMonth, below),
-        ],
-        afterCure,
-        null,
-      ),
-      expected: { terminationAvailable: false },
-    },
-  ];
 }
 
 export function runOutcomeTest(
@@ -245,13 +130,12 @@ export function runOutcomeTest(
   const terminationMatches =
     actual.terminationAvailable === test.expected.terminationAvailable;
   const creditsMatch =
-    test.expected.minimumCreditsCents === undefined ||
-    actual.serviceCreditsCents >= test.expected.minimumCreditsCents;
+    actual.serviceCreditsCents === test.expected.serviceCreditsCents;
   const passed = terminationMatches && creditsMatch;
   const failureReason = !terminationMatches
     ? `Expected termination ${test.expected.terminationAvailable ? "available" : "unavailable"}.`
     : !creditsMatch
-      ? `Expected at least ${test.expected.minimumCreditsCents} cents in accrued credits.`
+      ? `Expected exactly ${test.expected.serviceCreditsCents} cents in service credits.`
       : null;
   return {
     testId: test.id,

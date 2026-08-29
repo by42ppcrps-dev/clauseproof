@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { clauseProofStore } from "../state/runtimeStore.js";
+import { agentClauseProofPort } from "../state/runtimeStore.js";
 import { WebMcpRegistry } from "./registry.js";
 
 export function useWebMcpRegistry(): string {
@@ -17,9 +17,14 @@ export function useWebMcpRegistry(): string {
       "static"
         ? "static"
         : "dynamic";
-    const registry = new WebMcpRegistry(context, clauseProofStore, mode, () => {
-      setStatus("WebMCP · registration error");
-    });
+    const registry = new WebMcpRegistry(
+      context,
+      agentClauseProofPort,
+      mode,
+      () => {
+        setStatus("WebMCP · registration error");
+      },
+    );
     let active = true;
     void registry
       .mount()

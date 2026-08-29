@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { DeterministicFingerprintProvider } from "../../src/application/fingerprint.js";
 import {
   canonicalCustomerInterpretation,
+  canonicalOutcomeRule,
   canonicalVendorInterpretation,
 } from "../../src/domain/seed.js";
 import { createClauseProofStore } from "../../src/state/createStore.js";
+import { createAgentClauseProofPort } from "../../src/state/agentPort.js";
 import {
   WebMcpRegistry,
   type ModelContextLike,
@@ -36,7 +38,11 @@ function harness(mode: "dynamic" | "static" = "dynamic") {
     idGenerator: { next: (prefix) => `${prefix}-${++id}` },
   });
   const context = new FakeModelContext();
-  const registry = new WebMcpRegistry(context, store, mode);
+  const registry = new WebMcpRegistry(
+    context,
+    createAgentClauseProofPort(store),
+    mode,
+  );
   return { context, registry, store };
 }
 
@@ -86,6 +92,64 @@ describe("phase-aware registry", () => {
     registry.unmount();
     await registry.mount();
     expect(context.tools.size).toBe(2);
+    registry.unmount();
+  });
+
+  it("re-registers proposal after failed verification so the agent can repair", async () => {
+    const { context, registry, store } = harness();
+    await registry.mount();
+    const staged = await store.stageInterpretations(
+      { kind: "manual-fallback" },
+      {
+        baseRevision: 0,
+        interpretations: [
+          canonicalVendorInterpretation,
+          canonicalCustomerInterpretation,
+        ],
+      },
+    );
+    if (!staged.ok) throw new Error("Expected interpretations to stage.");
+    await store.runCrashTest(
+      { kind: "manual-fallback" },
+      {
+        baseRevision: 0,
+        interpretationSetId: staged.data.interpretationSet.id,
+      },
+    );
+    const locked = await store.lockOutcome({
+      baseRevision: 0,
+      expectedRule: canonicalOutcomeRule,
+    });
+    if (!locked.ok) throw new Error("Expected outcome lock.");
+    const proposed = await store.stageRedline(
+      { kind: "manual-fallback" },
+      {
+        baseRevision: 0,
+        outcomeLockId: locked.data.outcomeLock.id,
+        targetClauseIds: ["sla-exclusive-remedy", "material-breach"],
+        semanticRule: {
+          ...canonicalOutcomeRule,
+          trigger: {
+            ...canonicalOutcomeRule.trigger,
+            requiredOccurrences: 3,
+          },
+        },
+        rationale:
+          "This deliberately stages three required occurrences so verification can expose the counterexample.",
+      },
+    );
+    if (!proposed.ok) throw new Error("Expected proposal to stage.");
+    const verified = await store.verifyRedline(
+      { kind: "manual-fallback" },
+      { baseRevision: 0, proposalId: proposed.data.proposal.id },
+    );
+    if (!verified.ok) throw new Error("Expected verification to execute.");
+    expect(verified.data.verification.eligibleForAcceptance).toBe(false);
+    await flushRegistration();
+    expect([...context.tools.keys()].sort()).toEqual([
+      "inspect_contract_case",
+      "propose_clarifying_redline",
+    ]);
     registry.unmount();
   });
 });
