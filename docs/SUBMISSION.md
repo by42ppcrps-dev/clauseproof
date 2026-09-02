@@ -85,4 +85,4 @@ No agent available: every panel has a manual fallback button that calls the same
 
 - Live URL: https://by42ppcrps-dev.github.io/clauseproof/ (no login; a ChatGPT Sites deployment also exists at https://clauseproof-testbench.dgkv.chatgpt.site/ once public publishing is enabled for the workspace)
 - Repository: https://github.com/by42ppcrps-dev/clauseproof (MIT license file in the root, visible in About)
-- Video: https://youtu.be/9pREoz_-GjI (public, 2:14)
+- Video: https://youtu.be/LHH8aGSAdmY (public, 2:14)
