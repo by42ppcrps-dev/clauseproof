@@ -243,6 +243,7 @@ await writeFile(
 set -euo pipefail
 cd "$(dirname "$0")"
 TAIL="\${TAIL:-0.6}"   # seconds of picture held after narration ends
+W="\${W:-1920}"; H="\${H:-1080}"   # output size; captions scale with it
 rm -f build/*.mp4 build/list.txt
 for n in $(ls narration/*.m4a | xargs -n1 basename | sed 's/\\.m4a$//' | sort); do
   narr="narration/$n.m4a"
@@ -251,18 +252,18 @@ for n in $(ls narration/*.m4a | xargs -n1 basename | sed 's/\\.m4a$//' | sort); 
   src=$(ls clips/$n.mov clips/$n.mp4 clips/$n.png 2>/dev/null | head -1 || true)
   [ -n "$src" ] || src="stills/$n.png"
   [ -f "$src" ] || { echo "missing clips/$n.mov (and no still)"; exit 1; }
-  fit="scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:color=#17191d"
+  fit="scale=$W:$H:force_original_aspect_ratio=decrease,pad=$W:$H:(ow-iw)/2:(oh-ih)/2:color=#17191d"
   case "$src" in
     *.png)
       ffmpeg -y -loglevel error -loop 1 -framerate 30 -t "$target" -i "$src" -i "captions/$n.png" -i "$narr" \\
-        -filter_complex "[0:v]$fit[base];[base][1:v]overlay=(W-w)/2:H-h,format=yuv420p[v];[2:a]apad=whole_dur=$target[a]" \\
+        -filter_complex "[0:v]$fit[base];[1:v]scale=iw*$W/1920:-1[cap];[base][cap]overlay=(W-w)/2:H-h,format=yuv420p[v];[2:a]apad=whole_dur=$target[a]" \\
         -map "[v]" -map "[a]" -t "$target" -c:v libx264 -crf 20 -c:a aac "build/$n.mp4" ;;
     *)
       cdur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$src")
       factor=$(python3 -c "print(max(1.0, $cdur / $target))")   # speed up long clips, never slow down
       ffmpeg -y -loglevel error -i "$src" -i "captions/$n.png" -i "$narr" \\
-        -filter_complex "[0:v]setpts=PTS/$factor,$fit,tpad=stop_mode=clone:stop_duration=$target,trim=duration=$target[base];[base][1:v]overlay=(W-w)/2:H-h,format=yuv420p[v];[2:a]apad=whole_dur=$target[a]" \\
-        -map "[v]" -map "[a]" -t "$target" -r 30 -c:v libx264 -crf 20 -c:a aac "build/$n.mp4" ;;
+        -filter_complex "[0:v]setpts=PTS/$factor,$fit,tpad=stop_mode=clone:stop_duration=$target,trim=duration=$target[base];[1:v]scale=iw*$W/1920:-1[cap];[base][cap]overlay=(W-w)/2:H-h,format=yuv420p[v];[2:a]apad=whole_dur=$target[a]" \\
+        -map "[v]" -map "[a]" -t "$target" -r 30 -c:v libx264 -preset slow -crf 17 -c:a aac "build/$n.mp4" ;;
   esac
   echo "file '$n.mp4'" >> build/list.txt
   echo "$n: source=$src target=\${target}s"
