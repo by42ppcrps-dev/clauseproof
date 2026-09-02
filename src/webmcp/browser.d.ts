@@ -4,6 +4,10 @@ declare global {
   interface Document {
     readonly modelContext?: ModelContextLike;
   }
+
+  interface Navigator {
+    readonly modelContext?: ModelContextLike;
+  }
 }
 
 export {};

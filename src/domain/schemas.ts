@@ -70,9 +70,21 @@ export const scenarioFactsSchema = z.strictObject({
 });
 
 export const interpretationSemanticsSchema = z.strictObject({
-  exclusiveRemedyScope: z.enum(exclusiveRemedyScopes),
-  repeatedSlaFailureMayBeMaterialBreach: z.boolean(),
-  creditsSurviveTermination: z.boolean(),
+  exclusiveRemedyScope: z
+    .enum(exclusiveRemedyScopes)
+    .describe(
+      "How far the 'sole and exclusive remedy' sentence reaches. all_sla_related_remedies: service credits displace every remedy for SLA failures, including termination (vendor-favorable). sla_compensation_only: credits only cap money; other remedies such as breach termination survive (customer-favorable).",
+    ),
+  repeatedSlaFailureMayBeMaterialBreach: z
+    .boolean()
+    .describe(
+      "true if repeated uptime misses can count as a material breach under the termination clause; false if they never can.",
+    ),
+  creditsSurviveTermination: z
+    .boolean()
+    .describe(
+      "true if credits already accrued are still owed after termination; false if they are forfeited.",
+    ),
 });
 
 export const modeledInterpretationSchema = z.strictObject({
@@ -94,17 +106,48 @@ export const commercialOutcomeSchema = z.strictObject({
 
 export const clarificationRuleSchema = z
   .strictObject({
-    trigger: z.strictObject({
-      metric: z.literal("monthly_uptime_percentage"),
-      comparator: z.literal("below"),
-      thresholdBps: basisPointsSchema.min(1),
-      requiredOccurrences: z.number().int().min(2).max(4),
-      rollingWindowMonths: z.number().int().min(2).max(18),
-    }),
+    trigger: z
+      .strictObject({
+        metric: z.literal("monthly_uptime_percentage"),
+        comparator: z.literal("below"),
+        thresholdBps: basisPointsSchema
+          .min(1)
+          .describe(
+            "Uptime threshold in basis points; 9950 means 99.50%. Must equal the agreement's SLA threshold.",
+          ),
+        requiredOccurrences: z
+          .number()
+          .int()
+          .min(2)
+          .max(4)
+          .describe(
+            "How many distinct calendar months below the threshold are needed before the customer may terminate (2-4).",
+          ),
+        rollingWindowMonths: z
+          .number()
+          .int()
+          .min(2)
+          .max(18)
+          .describe(
+            "Length of the rolling window, in months, within which those misses must fall (2-18, at least requiredOccurrences).",
+          ),
+      })
+      .describe("What has to happen before the termination right exists."),
     noticeRequired: z.literal(true),
-    cureDays: z.number().int().min(1).max(60),
+    cureDays: z
+      .number()
+      .int()
+      .min(1)
+      .max(60)
+      .describe(
+        "Days after written notice that the provider has to cure before termination becomes available (1-60).",
+      ),
     effect: z.literal("customer_may_terminate_without_penalty"),
-    preserveAccruedCredits: z.boolean(),
+    preserveAccruedCredits: z
+      .boolean()
+      .describe(
+        "true keeps already-accrued service credits payable after termination; false forfeits them.",
+      ),
     overridesClauseIds: z.tuple([
       z.literal("sla-exclusive-remedy"),
       z.literal("material-breach"),

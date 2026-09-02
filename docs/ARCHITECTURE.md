@@ -54,3 +54,5 @@ Audit events record actor, action, outcome, sequence, and a concise evidence sum
 Persistence is a versioned adapter with strict parsing and recovery from stale or corrupted storage. Persisted certification is checked against the canonical source case, generated grammar, deterministic proof, artifact bindings, and completed human acceptance event. A fresh browser starts from the canonical seed.
 
 Dynamic WebMCP registration uses one `AbortController` per generation and revokes stale tools on phase change. Static mode registers all five tools, but the service still rejects invalid phases, revisions, and fingerprints; registration is not the security boundary.
+
+The registry resolves its model context from `document.modelContext` first and `navigator.modelContext` second, so one build serves ChatGPT's built-in browser, Chrome 149+ with WebMCP enabled, and earlier Chrome previews. When neither exists the page reports `WebMCP · not detected · manual fallback` and every panel's fallback button calls the same application service.

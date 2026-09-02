@@ -26,6 +26,19 @@ import {
   type VerificationToolData,
 } from "./normalizers.js";
 
+const readingVocabulary = {
+  exclusiveRemedyScope: {
+    all_sla_related_remedies:
+      "credits displace every SLA remedy, including termination (vendor-favorable)",
+    sla_compensation_only:
+      "credits only cap money; breach termination survives (customer-favorable)",
+  },
+  repeatedSlaFailureMayBeMaterialBreach:
+    "true if repeated misses can be an uncured material breach",
+  creditsSurviveTermination:
+    "true if accrued credits remain payable after exit",
+} as const;
+
 function nextAction(phase: WorkflowPhase): RecoveryAction | null {
   const actions: Partial<Record<WorkflowPhase, RecoveryAction>> = {
     ready: {
@@ -107,6 +120,8 @@ export function createToolHandlers(store: AgentClauseProofPort) {
                     monthlyUptime: state.case.scenario.monthlyUptime,
                     noticeDate: state.case.scenario.noticeDate,
                   },
+                  slaThresholdBps: state.case.contract.terms.slaThresholdBps,
+                  readingVocabulary,
                 };
         return { ok: true, data, next: nextAction(state.phase) };
       } catch (error) {

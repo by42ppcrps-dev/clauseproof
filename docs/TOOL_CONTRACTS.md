@@ -1,10 +1,12 @@
 # ClauseProof WebMCP Tool Contracts
 
-ClauseProof exposes exactly five narrow tools. All inputs are strict Zod objects, JSON Schema is generated from the same schemas, unknown keys are rejected, and actor identity is never accepted as input.
+ClauseProof exposes exactly five narrow tools. All inputs are strict Zod objects, JSON Schema is generated from the same schemas with plain-English field descriptions, unknown keys are rejected, and actor identity is never accepted as input.
+
+Tools are registered through `document.modelContext.registerTool`, the surface defined by the WebMCP draft and used by ChatGPT's built-in browser and Chrome 149+. `navigator.modelContext` is accepted as a fallback for earlier Chrome previews. Each `execute` returns a plain JSON object (`ok`, `data`, `next` on success; `ok`, `error` with a stable code, the current revision, and one recovery action on failure).
 
 ## `inspect_contract_case`
 
-Reads the current revision, phase, visible clauses, scenario, and next action. Its `view` is one of `overview`, `clauses`, or `workflow`. It is read-only and idempotent. Because it can return contract language, it marks that content as untrusted.
+Reads the current revision, phase, visible clauses, scenario, and next action. Its `view` is one of `overview`, `clauses`, or `workflow`. The overview also returns the agreement's SLA threshold and a `readingVocabulary` that explains each supported semantic choice in plain English, so an agent can map a natural request ("vendor-favorable", "customer-favorable") onto the enums without being told their names. The workflow view returns the person's locked rule and the artifact IDs later tools require. It is read-only and idempotent. Because it can return contract language, it marks that content as untrusted.
 
 ## `stage_interpretations`
 
