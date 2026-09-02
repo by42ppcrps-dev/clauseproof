@@ -61,7 +61,7 @@ function currentPathCopy(
       return `The current lock requires ${lockedOccurrences} occurrences. The agent deliberately stages a ${candidateOccurrences}-occurrence candidate, learns from the real failures, and repairs it—but cannot lock or accept.`;
     }
   }
-  return "Watch the same language create two futures. A person sets intent. In the canonical judge path, a three-occurrence candidate fails against a two-occurrence lock, then the agent repairs it—but cannot lock or accept.";
+  return "Watch the same language create two futures. A person sets intent. In the walkthrough, a three-occurrence candidate fails against a two-occurrence lock, then the agent repairs it from the failing test—but cannot lock or accept.";
 }
 
 export function JudgePath({
@@ -86,9 +86,9 @@ export function JudgePath({
   );
 
   return (
-    <section className="judge-path" aria-label="Judge path">
+    <section className="judge-path" aria-label="Guided walkthrough">
       <div className="judge-path-copy">
-        <p className="eyebrow">Judge path</p>
+        <p className="eyebrow">Guided walkthrough · about 3 minutes</p>
         <h2>Follow one clause from ambiguity to proof.</h2>
         <p>{pathCopy}</p>
       </div>

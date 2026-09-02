@@ -158,7 +158,7 @@ async function completeManualThroughDivergence(page: Page): Promise<void> {
     .getByRole("button", { name: "Stage sample readings (manual fallback)" })
     .click();
   await expect(page.locator(".agent-instruction")).toContainText(
-    "Run the current staged readings against the same visible facts",
+    "Run the two staged readings against the same facts on this page",
   );
   await page.getByRole("button", { name: "Run crash test" }).click();
 }
@@ -169,12 +169,15 @@ test("completes the honest manual fallback journey", async ({ page }) => {
   ).toBeVisible();
   const freshAgentTask = page.locator(".agent-instruction");
   await expect(freshAgentTask).toContainText(
-    "exclusiveRemedyScope=all_sla_related_remedies, repeatedSlaFailureMayBeMaterialBreach=false, creditsSurviveTermination=true",
+    "a vendor-favorable reading where the 'sole and exclusive remedy' sentence displaces every SLA-related remedy",
   );
   await expect(freshAgentTask).toContainText(
-    "exclusiveRemedyScope=sla_compensation_only, repeatedSlaFailureMayBeMaterialBreach=true, creditsSurviveTermination=true",
+    "a customer-favorable reading where that sentence only limits compensation",
   );
-  const judgePath = page.getByRole("region", { name: "Judge path" });
+  await expect(freshAgentTask).toContainText(
+    "do not pick the intended outcome for me",
+  );
+  const judgePath = page.getByRole("region", { name: "Guided walkthrough" });
   await expect(judgePath.getByText("Stage two readings")).toBeVisible();
   await completeManualThroughDivergence(page);
 
@@ -281,9 +284,9 @@ test("renders a custom supported locked rule from workflow data", async ({
   await expect(page.locator(".agent-instruction")).toContainText(
     "candidate that requires four qualifying misses",
   );
-  await expect(page.getByRole("region", { name: "Judge path" })).toContainText(
-    "Agent stages 4 misses against the locked 3",
-  );
+  await expect(
+    page.getByRole("region", { name: "Guided walkthrough" }),
+  ).toContainText("Agent stages 4 misses against the locked 3");
   await expect(
     page.getByRole("region", { name: "Clarifying redline" }),
   ).toContainText(
@@ -351,7 +354,7 @@ test("derives candidate copy for every supported occurrence lock", async ({
       `candidate that requires ${value.word} qualifying misses`,
     );
     await expect(
-      page.getByRole("region", { name: "Judge path" }),
+      page.getByRole("region", { name: "Guided walkthrough" }),
     ).toContainText(
       `Agent stages ${value.candidate} misses against the locked ${value.locked}`,
     );
@@ -711,10 +714,8 @@ test("keeps the judge prompt available when the Clipboard API stalls", async ({
   });
   await page.reload();
 
-  await page.getByRole("button", { name: "Copy judge prompt" }).click();
-  const fallback = page.getByRole("textbox", { name: "Judge prompt" });
+  await page.getByRole("button", { name: "Copy prompt" }).click();
+  const fallback = page.getByRole("textbox", { name: "Browser-agent prompt" });
   await expect(fallback).toBeVisible();
-  await expect(fallback).toHaveValue(
-    /Inspect the SLA remedy and material-breach clauses/,
-  );
+  await expect(fallback).toHaveValue(/Read the three clauses on this page/);
 });

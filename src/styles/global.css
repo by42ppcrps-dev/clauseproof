@@ -261,6 +261,13 @@ h1 em {
   font-weight: 400;
 }
 
+.hero-subhead {
+  max-width: 640px;
+  margin: 14px 0 0;
+  color: var(--color-muted);
+  font-size: 16px;
+  line-height: 1.55;
+}
 .agent-instruction {
   max-width: 405px;
   margin: 18px 0 0;

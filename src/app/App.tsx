@@ -1,17 +1,26 @@
 import { useState } from "react";
 
+import { writeToClipboard } from "./clipboard.js";
+
 import type { WorkflowState } from "../domain/workflow.js";
 import { ActivityRail } from "../features/activity/ActivityRail.js";
 import { AuthorityBoundary } from "../features/authority/AuthorityBoundary.js";
 import { ContractPanel } from "../features/contract/ContractPanel.js";
 import { FuturesPanel } from "../features/futures/FuturesPanel.js";
+import {
+  agentPromptFor,
+  candidateOccurrencesFor,
+} from "../features/guide/agentPrompts.js";
 import { JudgePath } from "../features/guide/JudgePath.js";
 import { OutcomeLockPanel } from "../features/outcome/OutcomeLockPanel.js";
 import { RedlinePanel } from "../features/redline/RedlinePanel.js";
 import { TestBench } from "../features/testbench/TestBench.js";
 import { ScenarioTimeline } from "../features/timeline/ScenarioTimeline.js";
 import { useClauseProof } from "../state/useClauseProof.js";
-import { useWebMcpRegistry } from "../webmcp/useRegistry.js";
+import {
+  useWebMcpRegistry,
+  webMcpUnavailableHint,
+} from "../webmcp/useRegistry.js";
 
 const phaseLabels: Record<WorkflowState["phase"], string> = {
   ready: "Ready to inspect",
@@ -23,96 +32,6 @@ const phaseLabels: Record<WorkflowState["phase"], string> = {
   accepted: "Revision accepted",
 };
 
-function candidateOccurrencesFor(lockedOccurrences: number): number {
-  return lockedOccurrences < 4 ? lockedOccurrences + 1 : lockedOccurrences - 1;
-}
-
-function occurrenceWord(value: number): string {
-  const words: Record<number, string> = { 2: "two", 3: "three", 4: "four" };
-  return words[value] ?? String(value);
-}
-
-function judgePromptFor(state: WorkflowState): string {
-  if (state.phase === "ready") {
-    return "Inspect the SLA remedy and material-breach clauses. Stage exactly two materially different readings of what happens after two qualifying SLA misses using only these supported semantic combinations: reading 1 — exclusiveRemedyScope=all_sla_related_remedies, repeatedSlaFailureMayBeMaterialBreach=false, creditsSurviveTermination=true; reading 2 — exclusiveRemedyScope=sla_compensation_only, repeatedSlaFailureMayBeMaterialBreach=true, creditsSurviveTermination=true. Cite both relevant clauses visible in this page, explain each semantic choice, and do not choose the intended business result for me. Then run both readings against the same facts.";
-  }
-  if (state.phase === "interpretations_staged") {
-    return "Run the current staged readings against the same visible facts. Report each commercial outcome and the exact semantic choices that create the divergence. Do not choose the intended business result for me.";
-  }
-  if (state.phase === "divergence_visible") {
-    return "Explain the two displayed commercial futures and the exact clause semantics that caused the divergence. Do not choose or lock the intended result; that decision belongs to me.";
-  }
-  if (state.phase === "outcome_locked" && state.verification) {
-    const candidateOccurrences =
-      state.proposal?.semanticRule.trigger.requiredOccurrences;
-    const lockedOccurrences =
-      state.outcomeLock?.expectedRule.trigger.requiredOccurrences;
-    const failedOutcomes =
-      state.verification.outcomeSuite.results
-        .filter(({ passed }) => !passed)
-        .map(({ testId }) => testId)
-        .join(", ") || "none";
-    const survivingBoundaries =
-      state.verification.boundaryStrength.results
-        .filter(({ killed }) => !killed)
-        .map(({ mutantId }) => mutantId)
-        .join(", ") || "none";
-    return `Staged candidate: ${candidateOccurrences ?? "unknown"} qualifying misses. Locked intent: ${lockedOccurrences ?? "unknown"} qualifying misses. The candidate passed ${state.verification.outcomeSuite.passedCount}/${state.verification.outcomeSuite.totalCount} outcomes and caught ${state.verification.boundaryStrength.killedCount}/${state.verification.boundaryStrength.totalCount} altered rules. Failed outcome: ${failedOutcomes}. Surviving boundary: ${survivingBoundaries}. Repair the proposal to match my locked rule, stage the replacement clarification, and rerun every test. Do not invent terms and do not accept the revision.`;
-  }
-  if (state.phase === "outcome_locked") {
-    const lockedOccurrences =
-      state.outcomeLock?.expectedRule.trigger.requiredOccurrences;
-    if (lockedOccurrences !== undefined) {
-      const candidateOccurrences = candidateOccurrencesFor(lockedOccurrences);
-      return `Inspect my locked outcome. First stage a candidate that requires ${occurrenceWord(candidateOccurrences)} qualifying misses while matching every other locked term; my lock requires ${lockedOccurrences}. Run every contract test, use the returned failure and surviving-boundary evidence to repair the proposal to my locked rule, then stage and retest the replacement. Do not accept the revision.`;
-    }
-    return "Inspect my locked outcome, stage a deliberately different supported occurrence rule, and run every contract test. Use only returned evidence to repair the proposal to my lock. Do not accept the revision.";
-  }
-  if (state.phase === "redline_staged") {
-    return "Run every outcome and altered-rule boundary test against the staged clarification. Report the exact failures and counterexamples. If it fails, repair and retest; do not accept the revision.";
-  }
-  if (state.phase === "verified") {
-    return "Summarize the passing outcome and boundary evidence, then state clearly that only I can accept the tested revision. Do not attempt acceptance.";
-  }
-  return "Inspect the accepted revision and summarize its tested behavioral boundary without making legal conclusions.";
-}
-
-function writeWithLegacyClipboard(text: string): boolean {
-  const previousFocus =
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : undefined;
-  const field = document.createElement("textarea");
-  field.value = text;
-  field.setAttribute("readonly", "");
-  field.style.position = "fixed";
-  field.style.opacity = "0";
-  document.body.append(field);
-  field.select();
-  const copied = document.execCommand("copy");
-  field.remove();
-  previousFocus?.focus();
-  return copied;
-}
-
-async function writeToClipboard(text: string): Promise<boolean> {
-  const modernWrite = navigator.clipboard?.writeText.bind(navigator.clipboard);
-  if (modernWrite) {
-    const modernResult = await Promise.race([
-      modernWrite(text).then(
-        () => true,
-        () => false,
-      ),
-      new Promise<boolean>((resolve) => {
-        globalThis.setTimeout(() => resolve(false), 300);
-      }),
-    ]);
-    if (modernResult) return true;
-  }
-
-  return writeWithLegacyClipboard(text);
-}
-
 export function App() {
   const demo = useClauseProof();
   const webMcpStatus = useWebMcpRegistry();
@@ -120,7 +39,7 @@ export function App() {
   const [copyState, setCopyState] = useState<
     "idle" | "copying" | "copied" | "failed"
   >("idle");
-  const judgePrompt = judgePromptFor(state);
+  const judgePrompt = agentPromptFor(state);
   const repairNeeded =
     state.verification !== null && !state.verification.eligibleForAcceptance;
   const lockedOccurrences =
@@ -157,7 +76,16 @@ export function App() {
             <span />
             {repairNeeded ? "Candidate failed tests" : phaseLabels[state.phase]}
           </div>
-          <div className="mcp-status">{webMcpStatus}</div>
+          <div
+            className="mcp-status"
+            title={
+              webMcpStatus.includes("not detected")
+                ? webMcpUnavailableHint
+                : "Tools are registered through document.modelContext"
+            }
+          >
+            {webMcpStatus}
+          </div>
           <button
             className="quiet-button reset-button"
             disabled={busy}
@@ -177,7 +105,7 @@ export function App() {
               : "Copying… The prompt remains selectable below."}
           </p>
           <textarea
-            aria-label="Judge prompt"
+            aria-label="Browser-agent prompt"
             onFocus={(event) => event.currentTarget.select()}
             readOnly
             value={judgePrompt}
@@ -191,9 +119,14 @@ export function App() {
           <h1 id="page-title">
             Crash-test ambiguous clauses <em>before the real world does.</em>
           </h1>
+          <p className="hero-subhead">
+            One SLA clause. Two reasonable readings. $80,000 apart. Your browser
+            agent stages the readings and repairs the fix, this page runs the
+            numbers and the tests, and you decide what the contract should do.
+          </p>
         </div>
         <div className="agent-instruction" aria-label="Browser-agent task">
-          <p className="eyebrow">Current browser-agent task</p>
+          <p className="eyebrow">Paste this into your browser agent</p>
           <p>{judgePrompt}</p>
           <button
             className="secondary-button"
@@ -204,7 +137,7 @@ export function App() {
               ? "Prompt copied"
               : copyState === "failed"
                 ? "Copy failed"
-                : "Copy judge prompt"}
+                : "Copy prompt"}
           </button>
         </div>
       </section>
