@@ -6,7 +6,7 @@ ClauseProof is a web app where a browser agent and a person fix an ambiguous con
 
 - Live app: <https://lumegridai-ops.github.io/clauseproof/> (no login; open it in ChatGPT's built-in browser, or in Chrome 149+ with WebMCP enabled)
 - Source: <https://github.com/lumegridai-ops/clauseproof> (MIT)
-- Demo video: added on submission day
+- Demo video (2:14): <https://youtu.be/9pREoz_-GjI>
 - Built for the [WebMCP Challenge](https://webmcp.devpost.com/), August 28 to September 3, 2026
 
 > ClauseProof tests modeled commercial behavior in one synthetic agreement. It does not parse arbitrary contracts, predict a court ruling, determine enforceability, or provide legal advice.
