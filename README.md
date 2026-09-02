@@ -1,87 +1,103 @@
-# ClauseProof — Unit tests for contract language
+# ClauseProof — unit tests for contract language
 
-ClauseProof is a deterministic contract behavior testbench for commercial counsel, procurement teams, and contract operations professionals. A browser agent stages two constrained, clause-cited readings of one synthetic SaaS agreement. The page runs both against the same adverse facts, exposes an $80,000 divergence, and turns the person's intended outcome into executable examples. The agent can then stage a structured clarification, learn from an exact failed counterexample, repair it, and rerun the tests. Only the person can lock intent or accept the tested revision.
+**One SLA clause. Two reasonable readings. $80,000 apart.**
 
-> ClauseProof tests modeled commercial behavior in a synthetic agreement. It does not parse arbitrary contracts, predict a court ruling, determine enforceability, or provide legal advice.
+ClauseProof is a web app where a browser agent and a person fix an ambiguous contract clause together, and the page proves the fix works before anyone accepts it. The agent works through five WebMCP tools registered by the page. The person keeps the two decisions that matter: what the clause should mean, and whether to accept the tested wording.
 
-## Live build
+- Live app: <https://clauseproof-testbench.dgkv.chatgpt.site/> (open it in ChatGPT's built-in browser, or in Chrome 149+ with WebMCP enabled)
+- Demo video: added on submission day
+- Built for the [WebMCP Challenge](https://webmcp.devpost.com/), August 28 to September 3, 2026
 
-[Open the ClauseProof testbench](https://clauseproof-testbench.dgkv.chatgpt.site/).
+> ClauseProof tests modeled commercial behavior in one synthetic agreement. It does not parse arbitrary contracts, predict a court ruling, determine enforceability, or provide legal advice.
 
-Judge-access status: access is being finalized. The current deployment may require owner authentication, so it must be verified from a signed-out browser or accompanied by working judge credentials before it is used as the contest live URL.
+![ClauseProof after the crash test: the same facts produce two commercial futures, $80,000 apart](docs/media/02-two-futures.png)
 
-## The one case
+## What happens in three minutes
 
-The synthetic agreement combines:
+1. **The agent stages two readings.** You paste the on-page prompt into your browser agent. Through WebMCP it reads the three clauses, stages a vendor-favorable reading (service credits are the only remedy, so repeated misses are never a material breach) and a customer-favorable reading (credits only cap compensation, so termination for breach survives), and runs both.
+2. **The page runs the numbers.** Same facts for both: uptime of 98.7% and 98.9% in consecutive months, a $10,000 monthly fee, eight months left, notice on March 1, no cure. Reading A: $2,000 in credits, no exit, $80,000 still owed. Reading B: $2,000 in credits, exit available, $0 owed.
+3. **You lock intent.** You say what the clause should mean: two misses within six months, written notice, a ten-day cure, termination without penalty, credits preserved. There is no WebMCP tool for this step. Only a person can lock intent, and the agent's tool list visibly changes when you do.
+4. **The agent proposes, the page tests.** The agent submits a structured rule, not prose. The page compiles the rule into exact clause wording, parses the wording back into a rule, checks they agree, then runs six outcome examples and eight altered-rule challenges against it. In the walkthrough the agent first tries a three-miss rule: 5 of 6 outcome tests pass, 7 of 8 altered rules are caught, and the failing test says exactly why.
+5. **The agent repairs from the counterexample.** It changes only the occurrence count. 6 of 6 and 8 of 8. The page marks it eligible, but the agent still cannot accept.
+6. **You accept.** Revision 1. The proof ledger keeps the wrong candidate, the failing test, the repair, the pass, and your acceptance, each attributed to whoever actually did it.
 
-- a 99.5% monthly uptime commitment;
-- a service-credit clause described as the customer's “sole and exclusive remedy”; and
-- a separate 30-day material-breach termination clause.
+![The three-miss candidate fails: 5/6 outcome tests, 7/8 altered rules caught, with the exact counterexample](docs/media/03-failed-tests.png)
 
-The bad-day facts are fixed: January uptime is 98.7%, February uptime is 98.9%, the monthly fee is $10,000, eight months remain, notice was given March 1, and the failure was not cured.
+## Why this needs WebMCP
 
-Two supported readings produce different commercial futures from those same facts:
+A chat window can talk about a clause. It cannot act inside the review without a way to touch live page state safely. WebMCP gives the agent a narrow, typed contract with the page:
 
-| Modeled reading                                        | Credits | Termination | Future fees |
-| ------------------------------------------------------ | ------: | ----------- | ----------: |
-| Credits displace all SLA-related remedies              |  $2,000 | Unavailable |     $80,000 |
-| Credits limit compensation; breach termination remains |  $2,000 | Available   |          $0 |
+- **Live state, not screenshots.** Every call carries the page's current revision and artifact IDs. Acting on a stale revision, a wrong outcome-lock ID, or an unknown clause fails with a stable error code and one recovery action.
+- **Structured input, deterministic output.** The agent never calculates money, dates, rolling windows, or test results. It supplies semantics; the page executes them. Inputs are strict Zod schemas compiled to JSON Schema with plain-English field descriptions, so a natural prompt is enough.
+- **Phase-aware tools.** The page registers only the tools that make sense right now and revokes the rest through the registration `AbortSignal`. The authority panel on the page shows the same mapping the registry enforces.
+- **Machine-readable failure.** A failed verification returns the exact failing test and the surviving altered rule. That is what lets the agent repair instead of guess.
+- **Enforced human authority.** Lock, accept, and reset exist only in the UI. The WebMCP layer is handed a frozen port that has no such methods, and the audit trail cannot record an agent action as a person's.
 
-The displayed financial divergence is exactly $80,000.
+Without WebMCP the same page still works through manual fallback buttons that call the same application service. What WebMCP adds is the agent's ability to do real work inside the review, with provenance, while a person stays in charge of intent and acceptance.
 
-## The proof boundary
+## The five tools
 
-ClauseProof never pretends to understand unrestricted legal prose. The agent submits a strictly validated semantic rule. The application compiles that rule into one supported canonical clause grammar, parses the generated wording back into a rule, checks exact round-trip equality, and executes the reconstructed rule against the person's locked examples. The lock snapshots the displayed contract and scenario; fingerprints bind that lock, the proposal, and the verification; acceptance independently recomputes the complete proof.
+| Tool                         | Registered in phase      | What it does                                                                                                                                  |
+| ---------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inspect_contract_case`      | every phase (read-only)  | Returns the clauses, scenario, revision, phase, current IDs, the reading vocabulary, and the person's locked rule (`view=workflow`).          |
+| `stage_interpretations`      | `ready`                  | Stages exactly two clause-cited readings with constrained semantics. Rejects unknown clauses, missing citations, and readings that agree.     |
+| `run_contract_crash_test`    | `interpretations_staged` | Executes both readings against the same facts and returns credits, termination availability, future fees, and the ordered divergence.         |
+| `propose_clarifying_redline` | `outcome_locked`         | Stages a structured rule against the person's outcome lock. The page generates the wording. A wrong rule stages and then fails with evidence. |
+| `verify_contract_tests`      | `redline_staged`         | Parses the generated wording back, runs 6 outcome tests and 8 altered-rule challenges, and returns exact failures or acceptance eligibility.  |
+
+There is deliberately no tool for locking expected behavior, accepting a redline, resetting the case, approving a contract, recording a human decision, or signing anything.
+
+Registration lives in [src/webmcp/registry.ts](src/webmcp/registry.ts); tool definitions and schemas in [src/webmcp/definitions.ts](src/webmcp/definitions.ts) and [src/webmcp/schemas.ts](src/webmcp/schemas.ts). Tools are registered through `document.modelContext.registerTool`, with `navigator.modelContext` accepted for earlier Chrome previews.
+
+## Try it yourself
+
+**ChatGPT desktop app (recommended).** Open the live URL in the built-in browser with a GPT-5.6 model that supports site tools, confirm the address bar shows site tools, and paste the prompt shown at the top of the page. Each phase shows the next prompt. Use the page's own buttons for the two person-only steps: **Lock this outcome** and **Accept tested revision**.
+
+**Chrome 149+.** Enable `chrome://flags/#enable-webmcp-testing`, relaunch, open the live URL, and use a WebMCP-capable agent or the Model Context Tool Inspector extension to call the tools.
+
+**No agent available?** The status pill reads `WebMCP · not detected · manual fallback` and every panel has a fallback button that calls the same application service. Add `?toolMode=static` to register all five tools at once; the service still enforces phases, revisions, and fingerprints.
+
+The prompts that produce the documented run are in [docs/DEMO.md](docs/DEMO.md).
+
+## How it is built
+
+```text
+domain ← application ← state / WebMCP ← UI
+```
+
+- `src/domain` is pure TypeScript: contract calculations in integer cents and basis points, the supported clause renderer and parser, generated outcome examples, and altered-rule (mutation) testing. No time, randomness, browser, or network.
+- `src/application` owns the workflow phases, actor-safe commands, revisions, canonical SHA-256 fingerprints, stale-artifact checks, proof recomputation on acceptance, and the audit log.
+- `src/state` publishes immutable snapshots, a restricted agent-only port, and strict versioned persistence in `localStorage`.
+- `src/webmcp` validates untrusted tool input, calls the restricted port, and registers tools per phase.
+- React components render state and call typed wrappers. They do not calculate outcomes.
+
+The proof chain the page executes for every candidate:
 
 ```text
 validated semantic rule
 → deterministic clause renderer
 → canonical clause wording
-→ strict parser and round-trip check
+→ strict parser and round-trip equality check
 → six outcome examples + eight altered-rule challenges
-→ human-only acceptance
+→ human-only acceptance, which recomputes the whole proof
 ```
 
-A passing run proves only that the generated clause and structured rule agree and that the rule satisfies the modeled examples and boundaries for this synthetic case. It is not formal verification or a legal conclusion.
+There is no backend, no external AI API, no upload, and no OCR. The browser supplies the agent; the page supplies the tools, the state, the calculations, and the evidence.
 
-## Why WebMCP matters
+## Quality gates
 
-WebMCP is necessary for the agent collaboration, not for the deterministic engine. It gives the browser agent a narrow, typed way to:
+```bash
+npm install
+npm run check:full
+```
 
-- inspect the exact page revision and visible clauses;
-- stage two clause-cited semantic readings;
-- execute both readings against page-owned facts;
-- stage a candidate rule only after a person locks intent;
-- receive exact counterexamples from a failed candidate; and
-- repair and retest without inventing calculations or acceptance authority.
+Runs ESLint, Prettier, strict TypeScript, 81 unit and integration tests, an architecture check (layer direction, determinism, no human authority in the WebMCP layer), a tool-surface check, a production build, and 12 Playwright browser tests that drive the real registered tools through a fake `document.modelContext`. CI runs the same gate on every push.
 
-The available tools change with the workflow phase. The page now exposes that exact live capability boundary beside the person-only controls, so a judge does not have to trust narration about who can do what. Every tool input uses a strict Zod schema, rejects unknown fields, and carries revision or artifact identifiers where required. WebMCP cannot lock an outcome, accept a revision, or reset the case. Those controls exist only in the human UI.
+Related documents: [product spec](docs/PRODUCT_SPEC.md), [architecture and authority model](docs/ARCHITECTURE.md), [tool contracts](docs/TOOL_CONTRACTS.md), [claims boundary](docs/CLAIMS.md), [adversarial eval matrix](evals/README.md), [demo script](docs/DEMO.md), [submission copy](docs/SUBMISSION.md), [hackathon changelog](docs/CHANGELOG_HACKATHON.md).
 
-The accepted view keeps the full failed-candidate-to-repair lineage in its proof ledger: the three-miss proposal, `5/6` outcome result, `7/8` altered-rule result, exact failure and survivor, two-miss repair, passing `6/6` and `8/8` rerun, and human acceptance. It also shows the executed artifact chain from bounded rule through generated wording and parse-back to deterministic tests.
+## What it is not
 
-Without WebMCP, the page still has an explicit manual fallback for accessibility and repeatable testing. What WebMCP adds is genuine in-page agent action with live state, provenance, recovery evidence, and enforceable authority boundaries—not a second implementation of the business logic.
-
-## Judge journey
-
-1. In a WebMCP-capable browser, ask the agent to inspect the agreement and stage the exact two cited semantic combinations: credits displace all SLA remedies and repeated failure is not a material breach; versus credits limit compensation and repeated failure may be a material breach. Preserve accrued credits in both readings, then run them against the same scenario.
-2. Confirm the displayed $80,000 divergence.
-3. As the person, lock the intended two-miss, six-month, 10-day-cure behavior.
-4. Ask the agent to stage a deliberately wrong three-occurrence candidate and run every test.
-5. Observe the exact failure: `5/6` outcome examples pass, `7/8` altered rules are caught, the `positive-trigger` example expected termination but the candidate produced no termination, and `occurrences-lower` survives.
-6. Ask the agent to repair only the occurrence count and retest. The replacement reaches `6/6` and `8/8`.
-7. Use the human-only button to accept the tested revision.
-
-See [docs/DEMO.md](docs/DEMO.md) for the timed, under-three-minute recording script and exact prompts.
-
-## WebMCP tools
-
-- `inspect_contract_case`
-- `stage_interpretations`
-- `run_contract_crash_test`
-- `propose_clarifying_redline`
-- `verify_contract_tests`
-
-There is deliberately no tool for locking expected behavior, accepting a redline, resetting the case, approving a contract, recording a human decision, or signing anything.
+ClauseProof supports one synthetic SaaS agreement, one adverse scenario, one constrained reading vocabulary, and one canonical clarification grammar. A passing run proves that the generated clause and the structured rule agree, and that the rule satisfies the modeled examples and boundaries for this case. It is not formal verification and not a legal conclusion. The pattern (compile a numeric clause to a rule, run it against facts, mutation-test the boundary, keep people on the decisions) is the point; the clause family is the first instance.
 
 ## Local development
 
@@ -92,42 +108,8 @@ npm install
 npm run dev
 ```
 
-Run the complete quality gate with:
-
-```bash
-npm run check:full
-```
-
-The gate runs linting, formatting, strict TypeScript checks, unit and integration tests, architecture checks, WebMCP tool-budget checks, a production build, and Playwright browser tests.
-
-Add `?toolMode=static` to the local URL to register the five-tool fallback surface. Service-side phase, revision, fingerprint, and authority checks remain active in static mode.
-
-## Architecture
-
-```text
-domain ← application ← state/WebMCP ← UI
-```
-
-- `src/domain` contains pure deterministic contract calculations, the supported clause renderer/parser, outcome examples, and altered-rule testing.
-- `src/application` owns workflow transitions, injected IDs and clock, fingerprints, stale-artifact checks, immutable state ownership, proof recomputation, and actor-safe commands.
-- `src/state` publishes immutable snapshots, exposes a restricted agent-only port, and handles strict versioned persistence without calculating outcomes.
-- `src/webmcp` validates untrusted tool input and calls the restricted port backed by the same application service used by the UI.
-- React components render state and invoke typed wrappers; they do not calculate contract outcomes.
-
-The implementation uses no external AI service, backend, upload pipeline, OCR, or legal-analysis API. The browser agent is supplied by the WebMCP-capable browser; the page remains the deterministic source of scenario calculations and test evidence.
-
-## Evidence and limitations
-
-- [Product specification](docs/PRODUCT_SPEC.md)
-- [Architecture and authority model](docs/ARCHITECTURE.md)
-- [Exact tool contracts](docs/TOOL_CONTRACTS.md)
-- [Claims boundary](docs/CLAIMS.md)
-- [Adversarial eval matrix](evals/README.md)
-- [Hackathon-period changelog](docs/CHANGELOG_HACKATHON.md)
-- [Contest submission copy](docs/SUBMISSION.md)
-
-ClauseProof currently supports one synthetic SaaS agreement, one adverse scenario, one constrained interpretation vocabulary, and one canonical clarification grammar. It is a focused demonstration of contract behavior testing—not a production contract review system.
+Deploy targets: ChatGPT Sites (`.openai/hosting.json`), GitHub Pages (`.github/workflows/pages.yml`, sets `VITE_BASE` for the sub-path), Netlify (`netlify.toml`), Vercel (`vercel.json`). The app is static; any HTTPS host works.
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

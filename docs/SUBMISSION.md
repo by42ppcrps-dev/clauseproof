@@ -1,4 +1,6 @@
-# Devpost Submission Copy
+# Devpost submission copy
+
+Paste-ready text for the submission form. Keep the claims boundary in `docs/CLAIMS.md` in mind if you edit.
 
 ## Project name
 
@@ -6,128 +8,81 @@ ClauseProof
 
 ## Tagline
 
-Crash-test ambiguous contract behavior before the real world does.
+Unit tests for contract language. A browser agent stages the readings and repairs the fix; the page proves it; you decide.
 
-## Short description
+## Description
 
-ClauseProof is a deterministic contract behavior testbench for commercial counsel, procurement teams, and contract operations professionals. A browser agent stages two constrained, clause-cited readings of one synthetic SaaS agreement; the page runs both against the same adverse facts and exposes an $80,000 divergence. A person locks the intended outcome, the agent stages and repairs a structured clarification from exact counterexamples, and only the person can accept the fully tested wording.
+### The problem
 
-## The problem
+Contract clauses survive review because both sides read the same words with different pictures in their heads. The difference only shows up after a bad event, when it turns into termination rights, credits, or months of fees.
 
-Contract language often survives review because each side reads the same words with a different operational model in mind. The disagreement appears only after a bad event, when the difference can become termination rights, credits, or months of fees.
+Here is the clause family ClauseProof starts with. A SaaS agreement promises 99.5% monthly uptime, says service credits are the customer's "sole and exclusive remedy," and separately lets either party terminate for an uncured material breach. Now uptime is 98.7% in January and 98.9% in February, the fee is $10,000 a month, eight months remain, and the failure is not cured after notice. One reasonable reading: the customer gets $2,000 in credits and still owes $80,000. Another reasonable reading: the customer gets the same $2,000 and can walk. Nobody noticed at signing.
 
-ClauseProof focuses on one synthetic but concrete example: an SLA promises 99.5% monthly uptime, calls service credits the customer's sole and exclusive remedy, and separately allows termination for uncured material breach. After two uptime misses, one modeled reading gives the customer $2,000 in credits but no termination and $80,000 in remaining fees. Another gives the same credits, permits termination, and leaves no future fees.
+### What ClauseProof does
 
-The audience is specific: commercial counsel defining the intended allocation, procurement professionals negotiating operational remedies, and contract operations teams translating approved intent into repeatable review criteria. This prototype does not claim measured savings or production readiness. It demonstrates how that audience can expose a consequential semantic gap before accepting language.
+ClauseProof runs the clause instead of arguing about it. On one page:
 
-## What ClauseProof does
+1. A browser agent, working through WebMCP tools the page registers, reads the three clauses and stages two clause-cited readings with constrained semantics: vendor-favorable and customer-favorable.
+2. The page executes both readings against the same facts and shows the two commercial futures side by side. In the demo case they are $80,000 apart.
+3. The person locks what the clause should mean: two misses within six months, written notice, a ten-day cure, termination without penalty, credits preserved. This step has no tool. It is person-only, and the agent's tool list changes when it happens.
+4. The agent proposes a structured rule. The page compiles the rule into exact clause wording, parses the wording back into a rule, checks that they agree, and runs six outcome examples plus eight altered-rule challenges (mutation tests for the clause boundary).
+5. If the candidate is wrong, the page says exactly why. In the walkthrough the agent first tries a three-miss rule: 5 of 6 outcome tests pass, 7 of 8 altered rules are caught, the failing test reports that termination was expected after two misses but the candidate gave none, and the surviving altered rule is "two misses instead of three."
+6. The agent repairs only that field and retests: 6 of 6, 8 of 8. The page marks the candidate eligible. The agent still cannot accept.
+7. The person accepts. The contract advances to revision 1 and the proof ledger keeps the failed candidate, the counterexample, the repair, the pass, and the acceptance, each attributed to who actually did it.
 
-The complete workflow is:
+### Why this is a strong fit for WebMCP
 
-1. The browser agent inspects the current page revision, visible clauses, and scenario.
-2. It stages exactly two materially different readings using known clause IDs and constrained semantic choices.
-3. The page executes both readings against identical facts and renders the divergent commercial futures.
-4. The person locks the expected behavior: two misses below 99.5% within six months, written notice, a 10-day cure period, termination without penalty, and preservation of accrued credits.
-5. The agent stages a deliberately wrong three-occurrence rule.
-6. The application generates the exact supported clause wording from that rule, reconstructs the rule from the wording, and runs six outcome examples plus eight altered-rule challenges.
-7. The wrong candidate reaches only `5/6` and `7/8`. The returned counterexample says that the two-miss positive case expected termination but the candidate produced none; the surviving `occurrences-lower` mutation identifies the missing boundary.
-8. The agent repairs the occurrence count and reruns the same page-owned tests, reaching `6/6` and `8/8`.
-9. The person—not the agent—accepts the current verified wording into revision 1.
+The agent has to act on live page state inside a governed workflow, not just talk about a document. WebMCP is what makes that safe and useful:
 
-This failure-and-repair loop is essential. ClauseProof does not award a passing badge to arbitrary prose, and the judge journey does not hide behind only a preloaded happy path. It visibly rejects a semantically wrong candidate, explains why, and keeps acceptance disabled until the repaired current proposal passes.
+- **Typed actions with live identifiers.** Every tool call carries the page's current revision and the IDs returned by earlier steps. A stale revision, a wrong outcome-lock ID, an invented clause, or two readings that agree all fail with a stable error code and one recovery action. The agent cannot drift from what the page actually shows.
+- **Structured input, deterministic execution.** The agent supplies semantics; the page calculates money, dates, rolling windows, and test results. Input schemas are strict Zod objects compiled to JSON Schema with plain-English descriptions, so a natural prompt like "stage a vendor-favorable and a customer-favorable reading" is enough.
+- **Phase-aware registration.** The page registers only the tools that make sense in the current phase and revokes the others through the registration `AbortSignal`. The authority panel on the page renders the same phase-to-tool map the registry enforces, so you can watch the agent's powers change.
+- **Machine-readable failure.** A failed verification returns the exact failing test and the surviving altered rule in the tool result. That is what turns "try again" into a real repair.
+- **Enforced human authority.** Lock, accept, and reset are not tools. The WebMCP layer receives a frozen port with no such methods, actor identity is never accepted as input, and the audit trail cannot record an agent action as a person's.
 
-## Why this is a strong WebMCP use case
+### What people and agents can do together now
 
-WebMCP is necessary for the agent collaboration, not for the deterministic calculations. The agent must act on live page state across a governed workflow: cite the current clauses, attach work to the current revision, use identifiers returned by earlier steps, wait for a person's outcome lock, receive machine-readable counterexamples, and repair the current candidate without acquiring approval authority.
+Before: a person reads a clause, maybe asks a chatbot whether it "looks safe," and gets prose back. The disagreement stays hidden until the bad month.
 
-ClauseProof exposes five narrow tools:
+Now: the agent does the tedious, structured part (stage the competing readings, propose the rule, read the counterexample, repair) inside the page; the page does the part software should own (execute the readings, generate the wording, run the tests); and the person does the two things only a person should do (say what the clause is supposed to mean, and accept the wording that proved it). The whole exchange is recorded with provenance.
 
-- `inspect_contract_case`
-- `stage_interpretations`
-- `run_contract_crash_test`
-- `propose_clarifying_redline`
-- `verify_contract_tests`
+### How WebMCP is implemented
 
-The tool surface is phase-aware. Inputs are strict Zod objects, JSON Schema comes from the same definitions, unknown keys are rejected, and actor identity never comes from tool input. Stale revisions and artifact fingerprints fail closed. Tool results return concise evidence and one next action when agent work remains rather than asking the agent to calculate money, dates, or test outcomes.
+- Five tools registered through `document.modelContext.registerTool` (with `navigator.modelContext` accepted for earlier Chrome previews): `inspect_contract_case`, `stage_interpretations`, `run_contract_crash_test`, `propose_clarifying_redline`, `verify_contract_tests`.
+- One `AbortController` per registration generation; a store subscription re-registers the phase's tool set on every state change. `?toolMode=static` registers all five for agents that only read tools at load.
+- Strict Zod schemas are the single source of truth. JSON Schema is generated from them with `additionalProperties: false`, min and max bounds, enums for semantic choices, and field descriptions.
+- Tool results are small JSON objects: `ok`, `data`, and one `next` action when agent work remains. Failures carry a stable code, the current revision, and a recovery action. No stack traces.
+- Annotations mark the read tool `readOnlyHint: true` and its contract text `untrustedContentHint: true`.
+- The WebMCP layer imports only a restricted agent port. An architecture check fails the build if it ever imports a human-capable surface. Twelve Playwright tests drive the real registered tools through a fake `document.modelContext`, including the failed-candidate-to-repair path and the tool list revoking on reset.
 
-Human authority is deliberately missing from WebMCP. There is no tool for locking expected behavior, accepting a revision, resetting the case, approving a contract, or signing anything.
+### Built with
 
-Without typed page tools, a browser agent could discuss visible prose but would have no reliable, governed way to stage interpretations into the live product, execute the page's deterministic engine, consume exact counterexamples, or repair the current artifact while preserving a human decision boundary. WebMCP turns that discussion into auditable collaboration.
+TypeScript, React 19, Vite, Zod 4, Vitest, Playwright, ChatGPT Sites. No backend, no external AI API, no upload, no OCR.
 
-## Better user experience
+### Limits
 
-ClauseProof replaces a vague “does this clause look safe?” exchange with a visible sequence of evidence:
+ClauseProof supports one synthetic SaaS agreement, one adverse scenario, one constrained reading vocabulary, and one canonical clarification grammar. A passing run proves that the generated clause and the structured rule agree and that the rule satisfies the modeled examples and boundaries for this case. It is not formal verification, not arbitrary contract analysis, and not legal advice. The pattern generalizes to any clause with numbers in it (cure periods, notice windows, caps, renewal terms); this is the first instance.
 
-- two readings cite the exact clauses they depend on;
-- both readings run against the same facts;
-- the financial consequence is rendered side by side;
-- the person's intended outcome becomes concrete examples;
-- a wrong candidate shows expected-versus-actual behavior;
-- a surviving altered rule identifies an under-specified boundary; and
-- the exact tested wording is shown before human acceptance.
+### Hackathon-period work
 
-The browser agent handles structured staging and evidence-driven repair. The page owns deterministic execution. The person owns commercial intent and acceptance. Each participant does the part it is suited and authorized to do.
+The repository's history begins August 28, 2026, after the August 25 start of the submission period. The domain engine, the governed workflow, the UI, the WebMCP layer, the release gates, and the adversarial hardening were all built during the challenge. `docs/CHANGELOG_HACKATHON.md` maps the work to dated commits.
 
-## How it was built
+## Testing instructions (form field)
 
-ClauseProof is a TypeScript and React application with a strict dependency direction:
+No login. Fresh state on every reset.
 
-```text
-domain ← application ← state/WebMCP ← UI
-```
+1. Open the live URL in the ChatGPT desktop app's built-in browser with a GPT-5.6 model that supports site tools, or in Chrome 149+ with `chrome://flags/#enable-webmcp-testing` enabled.
+2. The status pill in the header reads `WebMCP · dynamic tools live`. Click **Reset** if the page is not at revision 0.
+3. Copy the prompt at the top of the page into the agent. It reads the clauses, stages two readings, and runs the crash test. Confirm the $80,000 divergence.
+4. Click **Lock this outcome** yourself (defaults: 2 misses, 6 months, 10-day cure, credits preserved). Note the agent's tool list changes.
+5. Copy the next on-page prompt. The agent stages a three-miss candidate and runs every test. Confirm 5/6, 7/8, the failed `positive-trigger` example, the surviving `occurrences-lower` rule, and the disabled accept button.
+6. The agent repairs to two misses and retests. Confirm 6/6 and 8/8.
+7. Click **Accept tested revision** yourself. Confirm revision 1 and the proof ledger.
 
-The pure domain layer uses integer cents, integer basis points, calendar-safe dates, and no current time or randomness. It owns interpretation execution, commercial comparison, outcome examples, clause rendering/parsing, and altered-rule testing.
+No agent available: every panel has a manual fallback button that calls the same application service, and `?toolMode=static` registers all five tools at once.
 
-The application layer owns workflow phases, revision checks, canonical fingerprints, stale-artifact invalidation, actor-safe commands, and audit events. Both the UI and WebMCP call the same application service.
+## Links (form fields)
 
-The generated-clause boundary is intentionally narrow and testable. The agent supplies a supported semantic rule, not arbitrary redline prose. ClauseProof deterministically renders canonical wording, parses that wording back into semantics, requires exact round-trip equality, and executes the reconstructed rule. The human lock snapshots the displayed contract and scenario; lock, proposal, and verification are fingerprint-bound; service snapshots are frozen; and acceptance independently recomputes the full proof. Corrupted, detached, structurally inconsistent, noncanonical, or fingerprint-mismatched state fails closed.
-
-The project uses no external AI API, legal-analysis backend, arbitrary upload, or OCR. The WebMCP-capable browser supplies the agent; ClauseProof supplies the typed actions, workflow state, deterministic calculations, and verification evidence.
-
-## Judging criteria
-
-### WebMCP Leverage
-
-WebMCP drives the substantive collaboration: phase-aware tool registration, strict shared schemas, current-revision identifiers, clause-cited staging, deterministic execution, exact failed counterexamples, evidence-driven repair, and enforceable exclusion of human-only commands. The agent changes real page state through the same application service as the UI.
-
-### Execution
-
-The entry is a complete single-case product experience rather than a tool-console proof of concept. It includes the visible agreement, adverse timeline, two future branches, human outcome lock, generated before/after clause, failed and passing test evidence, acceptance gating, audit provenance, persistence, manual fallback, and browser-level tests.
-
-### Potential Impact
-
-The product makes a specific case for commercial counsel, procurement, and contract operations teams: expose differences in modeled contract behavior before those differences become live disputes or avoidable commercial exposure. The $80,000 synthetic divergence makes that problem concrete without claiming real-world savings.
-
-### Creativity and Ambition
-
-ClauseProof treats a clarification as a behavioral patch: the person defines expected outcomes, the agent stages a candidate, the application finds a counterexample, and the agent repairs the semantic boundary. The differentiator is not generic contract summarization; it is a deterministic, human-governed failure-and-repair loop inside the webpage.
-
-## Challenges and lessons
-
-The hardest design problem was preventing a polished but meaningless proof. Testing an agent-supplied JSON rule while displaying unrelated prose would be theater. The repaired design removes arbitrary proposal prose from the tool input, generates wording from the semantic rule, parses it back before execution, checks exact agreement and fingerprints, and demonstrates a real failing candidate before the passing one.
-
-The second challenge was authority. A useful browser agent needs enough power to stage and repair work, but it should not be able to manufacture the person's intent or acceptance. ClauseProof enforces that separation in its service types, runtime actor checks, restricted agent-only capability port, tool registry, UI, and audit history.
-
-## Limitations and safety
-
-ClauseProof supports one synthetic SaaS agreement, one adverse scenario, one constrained interpretation vocabulary, and one canonical clarification grammar. It does not analyze arbitrary contracts, determine legal meaning, predict courts, establish enforceability, provide legal advice, or perform formal verification.
-
-A passing suite means only that the current generated wording and reconstructed rule agree and that the rule satisfies the modeled examples and predefined altered-rule boundaries for this synthetic case.
-
-## Testing instructions
-
-1. Open the project in ChatGPT's in-app browser or Chrome 149+ with WebMCP enabled.
-2. Reset to revision 0 if necessary.
-3. Ask the agent to stage the exact two clause-cited semantic combinations: all SLA-related remedies displaced with repeated failure not a material breach; versus compensation only with repeated failure possibly a material breach. Preserve accrued credits in both, then run the same facts.
-4. Confirm the $80,000 divergence, then use the page to lock the two-miss, six-month, 10-day-cure outcome.
-5. Ask the agent to stage a candidate that changes only `requiredOccurrences` from 2 to 3 and run every test.
-6. Confirm `5/6`, `7/8`, the failed `positive-trigger`, disabled acceptance, and surviving `occurrences-lower` mutation.
-7. Ask the agent to repair `requiredOccurrences` to 2 and retest.
-8. Confirm `6/6`, `8/8`, and eligibility for human acceptance.
-9. Click **Accept tested revision** yourself and confirm revision 1 plus the audit trail.
-
-The repository also includes a manual fallback that invokes the same application service, plus an adversarial eval matrix covering tool selection, authority, stale state, invalid citations, wrong rules, and evidence-driven repair.
-
-## Hackathon-period work
-
-The repository history begins on August 28, 2026, after the August 25 submission-period start. The deterministic domain, governed service, product UI, WebMCP layer, release gates, deployment adapter, judge guidance, and adversarial failure-and-repair hardening were built during the challenge period. The repository's hackathon changelog maps that work to dated source history and tests.
+- Live URL: https://clauseproof-testbench.dgkv.chatgpt.site/
+- Repository: public GitHub repository with the MIT license file
+- Video: public YouTube link, under three minutes

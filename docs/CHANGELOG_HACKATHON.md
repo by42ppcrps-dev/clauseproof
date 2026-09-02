@@ -123,3 +123,13 @@ npm run check:full
 Execution results belong in the release report produced when the final source is tested; this changelog does not invent or imply a particular run result.
 
 The final public repository, judge-accessible live build, and public narrated video must all represent the same tested version. Under the challenge guidance, the submitted repository, live site, and Devpost entry should remain unchanged after the September 3, 2026 deadline through judging. If development continues, it should happen in a separate fork rather than altering the submitted version.
+
+## Submission readiness — September 2
+
+- Resolve the WebMCP context from `document.modelContext` first and `navigator.modelContext` second so one build works in ChatGPT's built-in browser, Chrome 149+, and earlier Chrome previews; report `not detected` with a hint when neither exists.
+- Add plain-English `description` fields to every tool input schema and return a `readingVocabulary` from `inspect_contract_case`, so the on-page prompts can describe readings in ordinary language instead of naming enum values.
+- Replace the enum-string agent prompts with natural-language prompts; rename the on-page "judge path" to a guided walkthrough; add a one-sentence value statement under the headline.
+- Split the app shell into prompt and clipboard modules to stay within the 300-line architecture limit.
+- Add hosting configuration for GitHub Pages (sub-path aware via `VITE_BASE`), Netlify, and Vercel alongside ChatGPT Sites; make the favicon path relative and the social-preview URL build-time configurable.
+- Add `scripts/capture-demo-media.mjs` (README screenshots and B-roll driven through the real registered tools) and `scripts/build-demo-kit.mjs` (paste-ready prompts, pre-rendered narration, captions, and an ffmpeg assembly script for the demo video).
+- Rewrite the README, Devpost description, and demo plan in plain language with exact prompts and testing steps.

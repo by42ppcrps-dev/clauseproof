@@ -1,21 +1,22 @@
 # ClauseProof Release QA
 
-Verified on August 29, 2026 against the source currently staged for the contest release.
+Verified on September 2, 2026 against the source currently staged for the contest release (first verified August 29, re-run after the submission-readiness changes).
 
 ## Automated gates
 
-| Gate                               | Observed result                         |
-| ---------------------------------- | --------------------------------------- |
-| `npm run lint`                     | Passed                                  |
-| `npm run format:check`             | Passed                                  |
-| `npm run typecheck`                | Passed                                  |
-| `npm run test`                     | 18 files, 81 tests passed               |
-| `npm run check:architecture`       | Passed                                  |
-| `npm run check:tools`              | Passed                                  |
-| `npm run build`                    | Client and SSR production builds passed |
-| `npm run test:e2e`                 | 12 desktop/mobile browser tests passed  |
-| `git diff --check`                 | Passed                                  |
-| Repository credential-pattern scan | No matches                              |
+| Gate                                 | Observed result                          |
+| ------------------------------------ | ---------------------------------------- |
+| `npm run lint`                       | Passed                                   |
+| `npm run format:check`               | Passed                                   |
+| `npm run typecheck`                  | Passed                                   |
+| `npm run test`                       | 18 files, 81 tests passed                |
+| `npm run check:architecture`         | Passed                                   |
+| `npm run check:tools`                | Passed                                   |
+| `npm run build`                      | Client and SSR production builds passed  |
+| `npm run test:e2e`                   | 12 desktop/mobile browser tests passed   |
+| `VITE_BASE=/clauseproof/ vite build` | Sub-path build emits prefixed asset URLs |
+| `git diff --check`                   | Passed                                   |
+| Repository credential-pattern scan   | No matches                               |
 
 The browser suite covers failed, repaired, and accepted phases; acceptance gating; the shared live authority surface; adaptive non-default locks; the generated-text parse-back chain; final failed-candidate-to-repair ledger evidence; critical evidence text size; and horizontal overflow at desktop and mobile widths.
 
