@@ -81,7 +81,7 @@ Narration: "I accept. Revision one. The ledger keeps the whole story: the wrong 
 
 Show the Authority boundary panel and the tool list.
 
-On-screen text: `5 typed WebMCP tools · registered per phase · strict schemas · no tool for decisions` and `github.com/lumegridai-ops/clauseproof · MIT`
+On-screen text: `5 typed WebMCP tools · registered per phase · strict schemas · no tool for decisions` and `github.com/by42ppcrps-dev/clauseproof · MIT`
 
 Narration: "Five typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide."
 

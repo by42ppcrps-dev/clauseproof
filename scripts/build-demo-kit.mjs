@@ -132,7 +132,7 @@ const sections = [
   {
     id: "08",
     caption:
-      "6 typed WebMCP tools · registered per phase · strict schemas · no tool for decisions\ngithub.com/lumegridai-ops/clauseproof · MIT",
+      "6 typed WebMCP tools · registered per phase · strict schemas · no tool for decisions\ngithub.com/by42ppcrps-dev/clauseproof · MIT",
     narration:
       "Six typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide.",
     still: "05-authority-boundary.png",
