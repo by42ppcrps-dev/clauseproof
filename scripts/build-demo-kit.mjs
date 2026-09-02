@@ -71,6 +71,25 @@ const sections = [
   },
 ];
 
+// FALLBACK=1 renders a variant whose narration and captions describe the
+// B-roll honestly: the registered tools are executed through
+// document.modelContext by the test harness, with no chat agent on screen.
+if (process.env.FALLBACK === "1") {
+  const byId = Object.fromEntries(
+    sections.map((section) => [section.id, section]),
+  );
+  byId["02"].caption =
+    "Registered WebMCP tools called through document.modelContext\n(tool calls replayed by the test harness; no chat agent on screen)";
+  byId["02"].narration =
+    "One prompt to a browser agent produces three WebMCP calls: inspect the case, stage two readings, run the crash test. Here those exact registered tools run through document model context. The page does the math: two thousand dollars in credits either way, but one reading leaves eighty thousand in fees on the table, and the other lets the customer walk.";
+  byId["04"].narration =
+    "Next, a deliberately wrong candidate: three misses instead of two. It arrives as a structured rule, not prose. The page compiles it into real clause wording, parses that wording back, and runs six outcome tests and eight altered-rule challenges. Five of six. Seven of eight. And the failing test says exactly why: after two misses, termination was expected, and the three-miss rule gave none.";
+  byId["05"].narration =
+    "The repair changes only the occurrence count, exactly what the counterexample pointed at. Six of six. Eight of eight. Eligible. Not accepted, because no tool can accept.";
+  byId["07"].narration =
+    "Five typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide.";
+}
+
 for (const dir of [
   "prompts",
   "narration",
