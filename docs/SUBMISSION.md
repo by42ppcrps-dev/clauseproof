@@ -83,6 +83,6 @@ No agent available: every panel has a manual fallback button that calls the same
 
 ## Links (form fields)
 
-- Live URL: https://clauseproof-testbench.dgkv.chatgpt.site/
-- Repository: public GitHub repository with the MIT license file
+- Live URL: https://lumegridai-ops.github.io/clauseproof/ (no login; a ChatGPT Sites deployment also exists at https://clauseproof-testbench.dgkv.chatgpt.site/ once public publishing is enabled for the workspace)
+- Repository: https://github.com/lumegridai-ops/clauseproof (MIT license file in the root, visible in About)
 - Video: public YouTube link, under three minutes

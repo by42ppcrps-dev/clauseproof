@@ -4,7 +4,8 @@
 
 ClauseProof is a web app where a browser agent and a person fix an ambiguous contract clause together, and the page proves the fix works before anyone accepts it. The agent works through five WebMCP tools registered by the page. The person keeps the two decisions that matter: what the clause should mean, and whether to accept the tested wording.
 
-- Live app: <https://clauseproof-testbench.dgkv.chatgpt.site/> (open it in ChatGPT's built-in browser, or in Chrome 149+ with WebMCP enabled)
+- Live app: <https://lumegridai-ops.github.io/clauseproof/> (no login; open it in ChatGPT's built-in browser, or in Chrome 149+ with WebMCP enabled)
+- Source: <https://github.com/lumegridai-ops/clauseproof> (MIT)
 - Demo video: added on submission day
 - Built for the [WebMCP Challenge](https://webmcp.devpost.com/), August 28 to September 3, 2026
 
@@ -108,7 +109,7 @@ npm install
 npm run dev
 ```
 
-Deploy targets: ChatGPT Sites (`.openai/hosting.json`), GitHub Pages (`.github/workflows/pages.yml`, sets `VITE_BASE` for the sub-path), Netlify (`netlify.toml`), Vercel (`vercel.json`). The app is static; any HTTPS host works.
+Deploy targets: GitHub Pages from the `gh-pages` branch (`npm run deploy:pages`, which builds with `VITE_BASE` for the sub-path), ChatGPT Sites (`.openai/hosting.json`), Netlify (`netlify.toml`), Vercel (`vercel.json`). The app is static; any HTTPS host works.
 
 ## License
 

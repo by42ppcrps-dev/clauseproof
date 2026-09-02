@@ -1,8 +1,9 @@
 name: Deploy to GitHub Pages
 
+# The live site is currently deployed from the gh-pages branch by
+# scripts/deploy-pages.sh (no Actions minutes needed). Run this workflow
+# manually if you prefer the Actions-based deploy.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
