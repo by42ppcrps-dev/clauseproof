@@ -19,6 +19,10 @@ This document distinguishes the dated implementation milestones and the later ad
 | 2026-08-29 | `0dbe895` | Self-guiding judge path, browser-agent prompt, and interaction reliability improvements                         |
 | 2026-08-29 | `d850195` | Production client-bundle serving fix                                                                            |
 | 2026-08-29 | `b98afb1` | Production favicon bundling fix                                                                                 |
+| 2026-09-02 | `18657b5` | feat: resolve the WebMCP context from document or navigator and describe every tool field                       |
+| 2026-09-02 | `5287c91` | feat: plain-language agent prompts and walkthrough copy                                                         |
+| 2026-09-02 | `6931c4f` | chore: add static hosting targets and a sub-path aware build                                                    |
+| 2026-09-02 | `f3e4211` | docs: rewrite README and submission copy; add demo media and kit scripts                                        |
 
 The dates and hashes above are read directly from the repository history. They can be checked with:
 
