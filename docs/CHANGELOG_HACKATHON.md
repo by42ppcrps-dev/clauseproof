@@ -137,3 +137,4 @@ The final public repository, judge-accessible live build, and public narrated vi
 - Add hosting configuration for GitHub Pages (sub-path aware via `VITE_BASE`), Netlify, and Vercel alongside ChatGPT Sites; make the favicon path relative and the social-preview URL build-time configurable.
 - Add `scripts/capture-demo-media.mjs` (README screenshots and B-roll driven through the real registered tools) and `scripts/build-demo-kit.mjs` (paste-ready prompts, pre-rendered narration, captions, and an ffmpeg assembly script for the demo video).
 - Rewrite the README, Devpost description, and demo plan in plain language with exact prompts and testing steps.
+- Add a sixth tool, `set_scenario_facts` (what-if): the agent can replace the scenario facts before the lock and the page re-runs both readings on the new facts. The timeline renders from data, facts are frozen by the lock, and persistence keeps the agreement canonical while allowing varied facts.

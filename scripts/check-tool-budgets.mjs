@@ -9,9 +9,9 @@ try {
   const names = [...text.matchAll(/name:\s*["']([^"']+)["']/g)].map(
     (match) => match[1],
   );
-  if (new Set(names).size !== 5 || names.length !== 5) {
+  if (new Set(names).size !== 6 || names.length !== 6) {
     throw new Error(
-      "WebMCP definitions must contain exactly five unique tool names.",
+      "WebMCP definitions must contain exactly six unique tool names.",
     );
   }
   console.log("Tool surface checks passed.");

@@ -3,6 +3,8 @@ import type {
   RunCrashTestCommand,
   RunCrashTestData,
   ServiceResult,
+  SetScenarioFactsCommand,
+  SetScenarioFactsData,
   StageInterpretationsCommand,
   StageInterpretationsData,
   StageRedlineCommand,
@@ -24,6 +26,10 @@ export interface AgentClauseProofPort {
     actor: AgentOrManualActor,
     command: RunCrashTestCommand,
   ): Promise<ServiceResult<RunCrashTestData>>;
+  setScenarioFacts(
+    actor: AgentOrManualActor,
+    command: SetScenarioFactsCommand,
+  ): Promise<ServiceResult<SetScenarioFactsData>>;
   stageRedline(
     actor: AgentOrManualActor,
     command: StageRedlineCommand,
@@ -46,6 +52,10 @@ export function createAgentClauseProofPort(
     ) => store.stageInterpretations(actor, command),
     runCrashTest: (actor: AgentOrManualActor, command: RunCrashTestCommand) =>
       store.runCrashTest(actor, command),
+    setScenarioFacts: (
+      actor: AgentOrManualActor,
+      command: SetScenarioFactsCommand,
+    ) => store.setScenarioFacts(actor, command),
     stageRedline: (actor: AgentOrManualActor, command: StageRedlineCommand) =>
       store.stageRedline(actor, command),
     verifyRedline: (actor: AgentOrManualActor, command: VerifyRedlineCommand) =>

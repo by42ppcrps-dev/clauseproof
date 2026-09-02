@@ -47,6 +47,10 @@ The page must make the collaboration boundary visible rather than merely describ
 
 Do not add arbitrary upload, OCR, external AI calls, third-party backends, research, auth, accounts, teams, e-signature, general legal analysis, risk scores, multiple contracts, multiple industries, a chatbot, or a reusable framework.
 
+## What-if facts
+
+Before the person locks intent, the scenario facts (uptime months, fee, months remaining, notice and cure dates) may be replaced by the agent through `set_scenario_facts`. The agreement, the scenario id, and the credit rate stay canonical. When both readings are already staged and executed, the page re-runs them on the new facts immediately. The lock freezes the facts; a what-if after the lock is rejected.
+
 ## Manual fallback
 
 The full journey must remain available without WebMCP through sample interpretation, crash-test, outcome-lock, sample-redline, verification, acceptance, and reset controls. Manual and agent paths call the same application service.

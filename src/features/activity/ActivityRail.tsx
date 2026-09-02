@@ -17,6 +17,8 @@ function actionLabel(action: string): string {
       return "Readings staged";
     case "run_contract_crash_test":
       return "Same facts executed";
+    case "set_scenario_facts":
+      return "Facts changed";
     case "lock_outcome":
       return "Intent locked";
     case "propose_clarifying_redline":

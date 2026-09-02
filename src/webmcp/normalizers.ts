@@ -39,6 +39,22 @@ export interface ProposalToolData {
   stagedOnly: true;
 }
 
+export interface ScenarioToolData {
+  monthsOfUptime: number;
+  monthlyFeeCents: number;
+  monthsRemaining: number;
+  noticeDate: string;
+  curedAtDate: string | null;
+  crashTest: {
+    branches: {
+      serviceCreditsCents: number;
+      terminationAvailable: boolean;
+      futureFeesCents: number;
+    }[];
+    totalFinancialDivergenceCents: number;
+  } | null;
+}
+
 export interface VerificationToolData {
   outcomeTestsPassed: number;
   outcomeTestsTotal: number;

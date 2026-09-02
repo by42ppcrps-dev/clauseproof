@@ -2,7 +2,7 @@
 
 **One SLA clause. Two reasonable readings. $80,000 apart.**
 
-ClauseProof is a web app where a browser agent and a person fix an ambiguous contract clause together, and the page proves the fix works before anyone accepts it. The agent works through five WebMCP tools registered by the page. The person keeps the two decisions that matter: what the clause should mean, and whether to accept the tested wording.
+ClauseProof is a web app where a browser agent and a person fix an ambiguous contract clause together, and the page proves the fix works before anyone accepts it. The agent works through six WebMCP tools registered by the page. The person keeps the two decisions that matter: what the clause should mean, and whether to accept the tested wording.
 
 - Live app: <https://lumegridai-ops.github.io/clauseproof/> (no login; open it in ChatGPT's built-in browser, or in Chrome 149+ with WebMCP enabled)
 - Source: <https://github.com/lumegridai-ops/clauseproof> (MIT)
@@ -16,7 +16,7 @@ ClauseProof is a web app where a browser agent and a person fix an ambiguous con
 ## What happens in three minutes
 
 1. **The agent stages two readings.** You paste the on-page prompt into your browser agent. Through WebMCP it reads the three clauses, stages a vendor-favorable reading (service credits are the only remedy, so repeated misses are never a material breach) and a customer-favorable reading (credits only cap compensation, so termination for breach survives), and runs both.
-2. **The page runs the numbers.** Same facts for both: uptime of 98.7% and 98.9% in consecutive months, a $10,000 monthly fee, eight months left, notice on March 1, no cure. Reading A: $2,000 in credits, no exit, $80,000 still owed. Reading B: $2,000 in credits, exit available, $0 owed.
+2. **The page runs the numbers.** Same facts for both: uptime of 98.7% and 98.9% in consecutive months, a $10,000 monthly fee, eight months left, notice on March 1, no cure. Reading A: $2,000 in credits, no exit, $80,000 still owed. Reading B: $2,000 in credits, exit available, $0 owed. Then ask a what-if: "what if March also missed?" The agent changes the facts through a tool, the page re-runs both readings on the new facts, and the gap moves. Facts can change only before you lock intent; the lock snapshots them.
 3. **You lock intent.** You say what the clause should mean: two misses within six months, written notice, a ten-day cure, termination without penalty, credits preserved. There is no WebMCP tool for this step. Only a person can lock intent, and the agent's tool list visibly changes when you do.
 4. **The agent proposes, the page tests.** The agent submits a structured rule, not prose. The page compiles the rule into exact clause wording, parses the wording back into a rule, checks they agree, then runs six outcome examples and eight altered-rule challenges against it. In the walkthrough the agent first tries a three-miss rule: 5 of 6 outcome tests pass, 7 of 8 altered rules are caught, and the failing test says exactly why.
 5. **The agent repairs from the counterexample.** It changes only the occurrence count. 6 of 6 and 8 of 8. The page marks it eligible, but the agent still cannot accept.
@@ -36,15 +36,16 @@ A chat window can talk about a clause. It cannot act inside the review without a
 
 Without WebMCP the same page still works through manual fallback buttons that call the same application service. What WebMCP adds is the agent's ability to do real work inside the review, with provenance, while a person stays in charge of intent and acceptance.
 
-## The five tools
+## The six tools
 
-| Tool                         | Registered in phase      | What it does                                                                                                                                  |
-| ---------------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `inspect_contract_case`      | every phase (read-only)  | Returns the clauses, scenario, revision, phase, current IDs, the reading vocabulary, and the person's locked rule (`view=workflow`).          |
-| `stage_interpretations`      | `ready`                  | Stages exactly two clause-cited readings with constrained semantics. Rejects unknown clauses, missing citations, and readings that agree.     |
-| `run_contract_crash_test`    | `interpretations_staged` | Executes both readings against the same facts and returns credits, termination availability, future fees, and the ordered divergence.         |
-| `propose_clarifying_redline` | `outcome_locked`         | Stages a structured rule against the person's outcome lock. The page generates the wording. A wrong rule stages and then fails with evidence. |
-| `verify_contract_tests`      | `redline_staged`         | Parses the generated wording back, runs 6 outcome tests and 8 altered-rule challenges, and returns exact failures or acceptance eligibility.  |
+| Tool                         | Registered in phase                                     | What it does                                                                                                                                                                                                                |
+| ---------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inspect_contract_case`      | every phase (read-only)                                 | Returns the clauses, scenario, revision, phase, current IDs, the reading vocabulary, and the person's locked rule (`view=workflow`).                                                                                        |
+| `stage_interpretations`      | `ready`                                                 | Stages exactly two clause-cited readings with constrained semantics. Rejects unknown clauses, missing citations, and readings that agree.                                                                                   |
+| `run_contract_crash_test`    | `interpretations_staged`                                | Executes both readings against the same facts and returns credits, termination availability, future fees, and the ordered divergence.                                                                                       |
+| `set_scenario_facts`         | `ready`, `interpretations_staged`, `divergence_visible` | What-if: replaces the scenario facts (uptime months, fee, months left, notice and cure dates). If both readings are staged and run, the page re-executes them and returns the new divergence. Frozen once intent is locked. |
+| `propose_clarifying_redline` | `outcome_locked`                                        | Stages a structured rule against the person's outcome lock. The page generates the wording. A wrong rule stages and then fails with evidence.                                                                               |
+| `verify_contract_tests`      | `redline_staged`                                        | Parses the generated wording back, runs 6 outcome tests and 8 altered-rule challenges, and returns exact failures or acceptance eligibility.                                                                                |
 
 There is deliberately no tool for locking expected behavior, accepting a redline, resetting the case, approving a contract, recording a human decision, or signing anything.
 
@@ -56,7 +57,7 @@ Registration lives in [src/webmcp/registry.ts](src/webmcp/registry.ts); tool def
 
 **Chrome 149+.** Enable `chrome://flags/#enable-webmcp-testing`, relaunch, open the live URL, and use a WebMCP-capable agent or the Model Context Tool Inspector extension to call the tools.
 
-**No agent available?** The status pill reads `WebMCP · not detected · manual fallback` and every panel has a fallback button that calls the same application service. Add `?toolMode=static` to register all five tools at once; the service still enforces phases, revisions, and fingerprints.
+**No agent available?** The status pill reads `WebMCP · not detected · manual fallback` and every panel has a fallback button that calls the same application service. Add `?toolMode=static` to register all six tools at once; the service still enforces phases, revisions, and fingerprints.
 
 The prompts that produce the documented run are in [docs/DEMO.md](docs/DEMO.md).
 
@@ -92,7 +93,7 @@ npm install
 npm run check:full
 ```
 
-Runs ESLint, Prettier, strict TypeScript, 81 unit and integration tests, an architecture check (layer direction, determinism, no human authority in the WebMCP layer), a tool-surface check, a production build, and 12 Playwright browser tests that drive the real registered tools through a fake `document.modelContext`. CI runs the same gate on every push.
+Runs ESLint, Prettier, strict TypeScript, 82 unit and integration tests, an architecture check (layer direction, determinism, no human authority in the WebMCP layer), a tool-surface check, a production build, and 12 Playwright browser tests that drive the real registered tools through a fake `document.modelContext`. CI runs the same gate on every push.
 
 Related documents: [product spec](docs/PRODUCT_SPEC.md), [architecture and authority model](docs/ARCHITECTURE.md), [tool contracts](docs/TOOL_CONTRACTS.md), [claims boundary](docs/CLAIMS.md), [adversarial eval matrix](evals/README.md), [demo script](docs/DEMO.md), [submission copy](docs/SUBMISSION.md), [hackathon changelog](docs/CHANGELOG_HACKATHON.md).
 

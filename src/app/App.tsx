@@ -179,7 +179,10 @@ export function App() {
 
       <div className="workspace-grid">
         <ContractPanel contract={state.case.contract} />
-        <ScenarioTimeline scenario={state.case.scenario} />
+        <ScenarioTimeline
+          scenario={state.case.scenario}
+          slaThresholdBps={state.case.contract.terms.slaThresholdBps}
+        />
         <FuturesPanel
           busy={busy}
           canRun={state.phase === "interpretations_staged"}

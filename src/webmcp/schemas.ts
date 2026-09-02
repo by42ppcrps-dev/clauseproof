@@ -1,8 +1,12 @@
 import { z } from "zod";
 
 import {
+  basisPointsSchema,
   clarificationRuleSchema,
   interpretationSemanticsSchema,
+  isoDateSchema,
+  moneyCentsSchema,
+  monthSchema,
 } from "../domain/schemas.js";
 
 const toolClauseIdSchema = z.enum([
@@ -114,4 +118,58 @@ export const verifyContractTestsInputSchema = z.strictObject({
     .min(1)
     .max(120)
     .describe("The proposalId returned by propose_clarifying_redline."),
+});
+
+export const setScenarioFactsInputSchema = z.strictObject({
+  baseRevision: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("The current revision returned by inspect_contract_case."),
+  scenario: z
+    .strictObject({
+      monthlyFeeCents: moneyCentsSchema.describe(
+        "Monthly fee in integer cents; 1000000 means $10,000.",
+      ),
+      monthsRemaining: z
+        .number()
+        .int()
+        .min(0)
+        .max(120)
+        .describe(
+          "Months left on the term. Future fees at stake are fee times months.",
+        ),
+      monthlyUptime: z
+        .array(
+          z.strictObject({
+            month: monthSchema.describe("Calendar month as YYYY-MM."),
+            uptimeBps: basisPointsSchema.describe(
+              "Uptime in basis points; 9870 means 98.70%.",
+            ),
+          }),
+        )
+        .min(1)
+        .max(24)
+        .describe(
+          "One entry per month, each month at most once. Months below the SLA threshold count as misses.",
+        ),
+      noticeGiven: z
+        .boolean()
+        .describe("Whether the customer gave written notice."),
+      noticeDate: isoDateSchema.describe("Written notice date, YYYY-MM-DD."),
+      observedAtDate: isoDateSchema.describe(
+        "Date the outcome is evaluated, YYYY-MM-DD. Termination needs this on or after the cure deadline.",
+      ),
+      curedAtDate: isoDateSchema
+        .nullable()
+        .describe("Date the provider cured, or null if never cured."),
+    })
+    .describe(
+      "The complete replacement facts. Start from the current scenario in inspect_contract_case and change only what the what-if question needs.",
+    ),
+  rationale: z
+    .string()
+    .min(10)
+    .max(300)
+    .describe("The what-if question these facts answer."),
 });

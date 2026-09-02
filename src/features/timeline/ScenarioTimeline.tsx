@@ -1,14 +1,48 @@
+import { describeScenario } from "../../domain/engine.js";
 import type { ScenarioFacts } from "../../domain/schemas.js";
 
 interface ScenarioTimelineProps {
   scenario: ScenarioFacts;
+  slaThresholdBps: number;
 }
 
-function formatUptime(uptimeBps: number): string {
-  return `${(uptimeBps / 100).toFixed(1)}%`;
+function money(cents: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(cents / 100);
 }
 
-export function ScenarioTimeline({ scenario }: ScenarioTimelineProps) {
+function percent(basisPoints: number): string {
+  return `${(basisPoints / 100).toFixed(1)}%`;
+}
+
+function monthLabel(month: string): string {
+  const [year = 0, index = 1] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, index - 1, 1)).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+function dateLabel(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+export function ScenarioTimeline({
+  scenario,
+  slaThresholdBps,
+}: ScenarioTimelineProps) {
+  const view = describeScenario(scenario, slaThresholdBps);
+  const threshold = percent(slaThresholdBps);
+
   return (
     <section
       className="panel timeline-panel"
@@ -19,38 +53,54 @@ export function ScenarioTimeline({ scenario }: ScenarioTimelineProps) {
           <p className="eyebrow">Same adverse facts</p>
           <h2 id="timeline-heading">Bad-day timeline</h2>
         </div>
-        <span className="fee-label">$10k / month</span>
+        <span className="fee-label">
+          {money(scenario.monthlyFeeCents)} / month
+        </span>
       </div>
       <ol className="timeline-list">
-        {scenario.monthlyUptime.map((event, index) => (
-          <li key={event.month}>
+        {view.months.map((entry, index) => (
+          <li key={entry.month}>
             <span className="timeline-marker" aria-hidden="true">
               {index + 1}
             </span>
             <div>
-              <p className="timeline-date">
-                {event.month === "2026-01" ? "January 2026" : "February 2026"}
+              <p className="timeline-date">{monthLabel(entry.month)}</p>
+              <strong>{percent(entry.uptimeBps)} uptime</strong>
+              <p>
+                {entry.belowThreshold
+                  ? `Below the ${threshold} commitment · ${money(entry.creditCents)} credit`
+                  : `Meets the ${threshold} commitment · no credit`}
               </p>
-              <strong>{formatUptime(event.uptimeBps)} uptime</strong>
-              <p>Below the 99.5% commitment · $1,000 credit</p>
             </div>
           </li>
         ))}
         <li>
           <span className="timeline-marker notice" aria-hidden="true">
-            3
+            {view.months.length + 1}
           </span>
           <div>
-            <p className="timeline-date">March 1, 2026</p>
-            <strong>Written notice sent</strong>
-            <p>The failure remains uncured at the relevant deadline.</p>
+            <p className="timeline-date">{dateLabel(scenario.noticeDate)}</p>
+            <strong>
+              {scenario.noticeGiven
+                ? "Written notice sent"
+                : "No written notice"}
+            </strong>
+            <p>
+              {scenario.curedAtDate
+                ? `Cured on ${dateLabel(scenario.curedAtDate)}.`
+                : "The failure remains uncured at the relevant deadline."}
+            </p>
           </div>
         </li>
       </ol>
       <div className="scenario-foot">
-        <span>8 months remain</span>
-        <span>$80,000 future fees at stake</span>
+        <span>{scenario.monthsRemaining} months remain</span>
+        <span>{money(view.feesAtStakeCents)} future fees at stake</span>
       </div>
+      <p className="whatif-hint">
+        What-if: before you lock intent, ask the browser agent to change these
+        facts. Both readings re-run on the new facts.
+      </p>
     </section>
   );
 }

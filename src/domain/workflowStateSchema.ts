@@ -59,7 +59,7 @@ const crashTestSchema = z.strictObject({
   interpretationSetId: idSchema,
   outcomes: z.tuple([commercialOutcomeSchema, commercialOutcomeSchema]),
   divergence: z.strictObject({
-    differences: z.array(divergenceDifferenceSchema).min(1).max(4),
+    differences: z.array(divergenceDifferenceSchema).max(4),
     totalFinancialDivergenceCents: moneyCentsSchema,
   }),
 });

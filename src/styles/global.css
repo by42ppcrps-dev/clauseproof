@@ -1771,3 +1771,10 @@ footer {
     transition-duration: 0.01ms !important;
   }
 }
+
+.whatif-hint {
+  margin: 14px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}

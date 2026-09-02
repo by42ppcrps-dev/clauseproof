@@ -1,6 +1,6 @@
 # ClauseProof WebMCP Tool Contracts
 
-ClauseProof exposes exactly five narrow tools. All inputs are strict Zod objects, JSON Schema is generated from the same schemas with plain-English field descriptions, unknown keys are rejected, and actor identity is never accepted as input.
+ClauseProof exposes exactly six narrow tools. All inputs are strict Zod objects, JSON Schema is generated from the same schemas with plain-English field descriptions, unknown keys are rejected, and actor identity is never accepted as input.
 
 Tools are registered through `document.modelContext.registerTool`, the surface defined by the WebMCP draft and used by ChatGPT's built-in browser and Chrome 149+. `navigator.modelContext` is accepted as a fallback for earlier Chrome previews. Each `execute` returns a plain JSON object (`ok`, `data`, `next` on success; `ok`, `error` with a stable code, the current revision, and one recovery action on failure).
 
@@ -16,6 +16,10 @@ Stages exactly two clause-cited modeled interpretations against the current revi
 
 Runs the current interpretation set against the one visible scenario. It accepts only the current base revision and interpretation-set identifier and returns concise branch summaries plus ordered divergence fields.
 
+## `set_scenario_facts`
+
+What-if. Replaces the scenario facts (monthly uptime list, fee, months remaining, notice flag and date, evaluation date, cure date) against the current revision, keeping the canonical scenario id and credit rate. Allowed only in `ready`, `interpretations_staged`, and `divergence_visible`; once the person locks intent the facts are frozen and the tool returns `INVALID_PHASE`. In `divergence_visible` the page re-executes both staged readings on the new facts and returns the new branch outcomes and divergence, which may be zero when the readings agree under those facts. Duplicate months and out-of-bounds values are rejected with `INVALID_INPUT`. Every change is recorded in the proof ledger as an agent action.
+
 ## `propose_clarifying_redline`
 
 After a person locks the expected outcome, stages a supported structured rule against the exact ordered pair `sla-exclusive-remedy`, `material-breach`. The agent cannot submit arbitrary proposal text: the application deterministically generates the canonical clause wording from the rule. It validates the current revision, human-owned outcome-lock identifier, and the lock's exact contract-and-scenario snapshot. A supported but wrong rule may be staged so the tests can return repair evidence. The tool stages only and cannot accept.
@@ -26,17 +30,17 @@ Parses the exact generated wording back into executable semantics, checks exact 
 
 ## Phase surface
 
-| Phase                    | Available tools                |
-| ------------------------ | ------------------------------ |
-| `ready`                  | inspect, stage interpretations |
-| `interpretations_staged` | inspect, run crash test        |
-| `divergence_visible`     | inspect                        |
-| `outcome_locked`         | inspect, propose redline       |
-| `redline_staged`         | inspect, verify tests          |
-| `verified`               | inspect                        |
-| `accepted`               | inspect                        |
+| Phase                    | Available tools                                    |
+| ------------------------ | -------------------------------------------------- |
+| `ready`                  | inspect, stage interpretations, set scenario facts |
+| `interpretations_staged` | inspect, run crash test, set scenario facts        |
+| `divergence_visible`     | inspect, set scenario facts                        |
+| `outcome_locked`         | inspect, propose redline                           |
+| `redline_staged`         | inspect, verify tests                              |
+| `verified`               | inspect                                            |
+| `accepted`               | inspect                                            |
 
-Static fallback mode may register all five, but every handler continues to enforce the same workflow rules.
+Static fallback mode may register all six, but every handler continues to enforce the same workflow rules.
 
 WebMCP handlers receive a restricted agent port whose interface and frozen runtime object omit `lockOutcome`, `acceptRedline`, and `reset`; the registry is not handed the human-capable store.
 

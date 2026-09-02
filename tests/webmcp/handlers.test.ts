@@ -48,11 +48,12 @@ const stagedInput = {
 } as const;
 
 describe("WebMCP handlers", () => {
-  it("exposes exactly five non-human operations", () => {
+  it("exposes exactly six non-human operations", () => {
     const { agentPort, handlers } = createHarness();
     expect(Object.keys(agentPort).sort()).toEqual([
       "getSnapshot",
       "runCrashTest",
+      "setScenarioFacts",
       "stageInterpretations",
       "stageRedline",
       "subscribe",
@@ -65,6 +66,7 @@ describe("WebMCP handlers", () => {
       "inspect_contract_case",
       "propose_clarifying_redline",
       "run_contract_crash_test",
+      "set_scenario_facts",
       "stage_interpretations",
       "verify_contract_tests",
     ]);
@@ -94,6 +96,55 @@ describe("WebMCP handlers", () => {
     });
     expect(store.getSnapshot().phase).toBe("divergence_visible");
     expect(JSON.stringify(crashed).length).toBeLessThan(1_200);
+  });
+
+  it("re-runs both readings when the agent changes the facts before the lock", async () => {
+    const { store, handlers } = createHarness();
+    const staged = await handlers.stage_interpretations(stagedInput);
+    if (!staged.ok) throw new Error("Expected staging to succeed.");
+    await handlers.run_contract_crash_test({
+      baseRevision: 0,
+      interpretationSetId: staged.data.interpretationSetId,
+    });
+    const whatIf = {
+      baseRevision: 0,
+      scenario: {
+        monthlyFeeCents: 1_000_000,
+        monthsRemaining: 8,
+        monthlyUptime: [{ month: "2026-01", uptimeBps: 9_870 }],
+        noticeGiven: true,
+        noticeDate: "2026-03-01",
+        observedAtDate: "2026-04-01",
+        curedAtDate: null,
+      },
+      rationale: "What if only January had missed the commitment?",
+    };
+    const changed = await handlers.set_scenario_facts(whatIf);
+    expect(changed).toMatchObject({
+      ok: true,
+      data: {
+        monthsOfUptime: 1,
+        crashTest: { totalFinancialDivergenceCents: 0 },
+      },
+    });
+    expect(store.getSnapshot().phase).toBe("divergence_visible");
+    expect(store.getSnapshot().case.scenario.monthlyUptime).toHaveLength(1);
+    expect(store.getSnapshot().events.at(-1)?.actor).toEqual({
+      kind: "agent-tool",
+      toolName: "set_scenario_facts",
+    });
+
+    const locked = await store.lockOutcome({
+      baseRevision: 0,
+      expectedRule: canonicalOutcomeRule,
+    });
+    expect(locked.ok).toBe(true);
+    const frozen = await handlers.set_scenario_facts(whatIf);
+    expect(frozen.ok).toBe(false);
+    if (frozen.ok)
+      throw new Error("Expected facts to be frozen after the lock.");
+    expect(frozen.error.code).toBe("INVALID_PHASE");
+    expect(store.getSnapshot().case.scenario.monthlyUptime).toHaveLength(1);
   });
 
   it("normalizes malformed input with one recovery action", async () => {

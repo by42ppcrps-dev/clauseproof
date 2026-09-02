@@ -58,12 +58,17 @@ async function flushRegistration() {
 describe("phase-aware registry", () => {
   it("publishes the exact dynamic surface without human-only authority", () => {
     expect(agentToolsByPhase).toEqual({
-      ready: ["inspect_contract_case", "stage_interpretations"],
+      ready: [
+        "inspect_contract_case",
+        "stage_interpretations",
+        "set_scenario_facts",
+      ],
       interpretations_staged: [
         "inspect_contract_case",
         "run_contract_crash_test",
+        "set_scenario_facts",
       ],
-      divergence_visible: ["inspect_contract_case"],
+      divergence_visible: ["inspect_contract_case", "set_scenario_facts"],
       outcome_locked: ["inspect_contract_case", "propose_clarifying_redline"],
       redline_staged: ["inspect_contract_case", "verify_contract_tests"],
       verified: ["inspect_contract_case"],
@@ -82,6 +87,7 @@ describe("phase-aware registry", () => {
       "inspect_contract_case",
       "propose_clarifying_redline",
       "run_contract_crash_test",
+      "set_scenario_facts",
       "stage_interpretations",
       "verify_contract_tests",
     ]);
@@ -95,6 +101,7 @@ describe("phase-aware registry", () => {
     await registry.mount();
     expect([...context.tools.keys()].sort()).toEqual([
       "inspect_contract_case",
+      "set_scenario_facts",
       "stage_interpretations",
     ]);
 
@@ -112,15 +119,16 @@ describe("phase-aware registry", () => {
     expect([...context.tools.keys()].sort()).toEqual([
       "inspect_contract_case",
       "run_contract_crash_test",
+      "set_scenario_facts",
     ]);
     registry.unmount();
     expect(context.tools.size).toBe(0);
   });
 
-  it("registers all five in static fallback mode", async () => {
+  it("registers all six in static fallback mode", async () => {
     const { context, registry } = harness("static");
     await registry.mount();
-    expect(context.tools.size).toBe(5);
+    expect(context.tools.size).toBe(6);
     registry.unmount();
   });
 
@@ -129,7 +137,7 @@ describe("phase-aware registry", () => {
     await registry.mount();
     registry.unmount();
     await registry.mount();
-    expect(context.tools.size).toBe(2);
+    expect(context.tools.size).toBe(3);
     registry.unmount();
   });
 

@@ -23,7 +23,7 @@ Here is the clause family ClauseProof starts with. A SaaS agreement promises 99.
 ClauseProof runs the clause instead of arguing about it. On one page:
 
 1. A browser agent, working through WebMCP tools the page registers, reads the three clauses and stages two clause-cited readings with constrained semantics: vendor-favorable and customer-favorable.
-2. The page executes both readings against the same facts and shows the two commercial futures side by side. In the demo case they are $80,000 apart.
+2. The page executes both readings against the same facts and shows the two commercial futures side by side. In the demo case they are $80,000 apart. Then a what-if: "what if March also missed?" The agent changes the facts through a tool and the page re-runs both readings on the new facts. Facts can change only before the lock.
 3. The person locks what the clause should mean: two misses within six months, written notice, a ten-day cure, termination without penalty, credits preserved. This step has no tool. It is person-only, and the agent's tool list changes when it happens.
 4. The agent proposes a structured rule. The page compiles the rule into exact clause wording, parses the wording back into a rule, checks that they agree, and runs six outcome examples plus eight altered-rule challenges (mutation tests for the clause boundary).
 5. If the candidate is wrong, the page says exactly why. In the walkthrough the agent first tries a three-miss rule: 5 of 6 outcome tests pass, 7 of 8 altered rules are caught, the failing test reports that termination was expected after two misses but the candidate gave none, and the surviving altered rule is "two misses instead of three."
@@ -48,8 +48,8 @@ Now: the agent does the tedious, structured part (stage the competing readings, 
 
 ### How WebMCP is implemented
 
-- Five tools registered through `document.modelContext.registerTool` (with `navigator.modelContext` accepted for earlier Chrome previews): `inspect_contract_case`, `stage_interpretations`, `run_contract_crash_test`, `propose_clarifying_redline`, `verify_contract_tests`.
-- One `AbortController` per registration generation; a store subscription re-registers the phase's tool set on every state change. `?toolMode=static` registers all five for agents that only read tools at load.
+- Six tools registered through `document.modelContext.registerTool` (with `navigator.modelContext` accepted for earlier Chrome previews): `inspect_contract_case`, `stage_interpretations`, `run_contract_crash_test`, `set_scenario_facts`, `propose_clarifying_redline`, `verify_contract_tests`.
+- One `AbortController` per registration generation; a store subscription re-registers the phase's tool set on every state change. `?toolMode=static` registers all six for agents that only read tools at load.
 - Strict Zod schemas are the single source of truth. JSON Schema is generated from them with `additionalProperties: false`, min and max bounds, enums for semantic choices, and field descriptions.
 - Tool results are small JSON objects: `ok`, `data`, and one `next` action when agent work remains. Failures carry a stable code, the current revision, and a recovery action. No stack traces.
 - Annotations mark the read tool `readOnlyHint: true` and its contract text `untrustedContentHint: true`.
@@ -73,13 +73,13 @@ No login. Fresh state on every reset.
 
 1. Open the live URL in the ChatGPT desktop app's built-in browser with a GPT-5.6 model that supports site tools, or in Chrome 149+ with `chrome://flags/#enable-webmcp-testing` enabled.
 2. The status pill in the header reads `WebMCP · dynamic tools live`. Click **Reset** if the page is not at revision 0.
-3. Copy the prompt at the top of the page into the agent. It reads the clauses, stages two readings, and runs the crash test. Confirm the $80,000 divergence.
+3. Copy the prompt at the top of the page into the agent. It reads the clauses, stages two readings, and runs the crash test. Confirm the $80,000 divergence. Optional what-if: ask "What if March 2026 had also missed at 99.2% uptime? Change the facts and report the new gap." The agent calls `set_scenario_facts` and the timeline and futures update.
 4. Click **Lock this outcome** yourself (defaults: 2 misses, 6 months, 10-day cure, credits preserved). Note the agent's tool list changes.
 5. Copy the next on-page prompt. The agent stages a three-miss candidate and runs every test. Confirm 5/6, 7/8, the failed `positive-trigger` example, the surviving `occurrences-lower` rule, and the disabled accept button.
 6. The agent repairs to two misses and retests. Confirm 6/6 and 8/8.
 7. Click **Accept tested revision** yourself. Confirm revision 1 and the proof ledger.
 
-No agent available: every panel has a manual fallback button that calls the same application service, and `?toolMode=static` registers all five tools at once.
+No agent available: every panel has a manual fallback button that calls the same application service, and `?toolMode=static` registers all six tools at once.
 
 ## Links (form fields)
 

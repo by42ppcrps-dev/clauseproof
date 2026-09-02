@@ -1,18 +1,19 @@
 import { ZodError } from "zod";
 
 import type { ModeledInterpretation } from "../domain/schemas.js";
-import type { WebMcpToolName, WorkflowPhase } from "../domain/model.js";
+import type { WebMcpToolName } from "../domain/model.js";
 import type { AgentClauseProofPort } from "../state/agentPort.js";
+import { nextAction, readingVocabulary } from "./guidance.js";
 import {
   invalidInputFailure,
   serviceFailure,
-  type RecoveryAction,
   type ToolResult,
 } from "./output.js";
 import {
   inspectContractCaseInputSchema,
   proposeClarifyingRedlineInputSchema,
   runContractCrashTestInputSchema,
+  setScenarioFactsInputSchema,
   stageInterpretationsInputSchema,
   verifyContractTestsInputSchema,
 } from "./schemas.js";
@@ -22,49 +23,10 @@ import {
   survivingBoundaryIds,
   type CrashToolData,
   type ProposalToolData,
+  type ScenarioToolData,
   type StageToolData,
   type VerificationToolData,
 } from "./normalizers.js";
-
-const readingVocabulary = {
-  exclusiveRemedyScope: {
-    all_sla_related_remedies:
-      "credits displace every SLA remedy, including termination (vendor-favorable)",
-    sla_compensation_only:
-      "credits only cap money; breach termination survives (customer-favorable)",
-  },
-  repeatedSlaFailureMayBeMaterialBreach:
-    "true if repeated misses can be an uncured material breach",
-  creditsSurviveTermination:
-    "true if accrued credits remain payable after exit",
-} as const;
-
-function nextAction(phase: WorkflowPhase): RecoveryAction | null {
-  const actions: Partial<Record<WorkflowPhase, RecoveryAction>> = {
-    ready: {
-      action: "stage_interpretations",
-      reason: "Stage two materially different clause-cited readings.",
-    },
-    interpretations_staged: {
-      action: "run_contract_crash_test",
-      reason: "Execute the current readings against the same facts.",
-    },
-    divergence_visible: {
-      action: "wait_for_person_outcome_lock",
-      reason: "Only the person may define and lock the intended behavior.",
-    },
-    outcome_locked: {
-      action: "propose_clarifying_redline",
-      reason:
-        "Stage or revise a structured rule against the human-owned outcome lock.",
-    },
-    redline_staged: {
-      action: "verify_contract_tests",
-      reason: "Run every outcome and boundary test against the proposal.",
-    },
-  };
-  return actions[phase] ?? null;
-}
 
 function parseFailure(store: AgentClauseProofPort, error: unknown) {
   const message =
@@ -197,6 +159,44 @@ export function createToolHandlers(store: AgentClauseProofPort) {
             ),
             totalFinancialDivergenceCents:
               result.data.crashTest.divergence.totalFinancialDivergenceCents,
+          },
+          next: nextAction(result.state.phase),
+        };
+      } catch (error) {
+        return parseFailure(store, error);
+      }
+    },
+
+    async set_scenario_facts(
+      input: unknown,
+    ): Promise<ToolResult<ScenarioToolData>> {
+      try {
+        const parsed = setScenarioFactsInputSchema.parse(input);
+        const result = await store.setScenarioFacts(
+          agentActor("set_scenario_facts"),
+          parsed,
+        );
+        if (!result.ok) return serviceFailure(result);
+        const { scenario, crashTest } = result.data;
+        return {
+          ok: true,
+          data: {
+            monthsOfUptime: scenario.monthlyUptime.length,
+            monthlyFeeCents: scenario.monthlyFeeCents,
+            monthsRemaining: scenario.monthsRemaining,
+            noticeDate: scenario.noticeDate,
+            curedAtDate: scenario.curedAtDate,
+            crashTest: crashTest
+              ? {
+                  branches: crashTest.outcomes.map((outcome) => ({
+                    serviceCreditsCents: outcome.serviceCreditsCents,
+                    terminationAvailable: outcome.terminationAvailable,
+                    futureFeesCents: outcome.futureFeesCents,
+                  })),
+                  totalFinancialDivergenceCents:
+                    crashTest.divergence.totalFinancialDivergenceCents,
+                }
+              : null,
           },
           next: nextAction(result.state.phase),
         };

@@ -3,9 +3,17 @@ import type { WebMcpToolName, WorkflowPhase } from "../domain/model.js";
 export const agentToolsByPhase: Readonly<
   Record<WorkflowPhase, readonly WebMcpToolName[]>
 > = {
-  ready: ["inspect_contract_case", "stage_interpretations"],
-  interpretations_staged: ["inspect_contract_case", "run_contract_crash_test"],
-  divergence_visible: ["inspect_contract_case"],
+  ready: [
+    "inspect_contract_case",
+    "stage_interpretations",
+    "set_scenario_facts",
+  ],
+  interpretations_staged: [
+    "inspect_contract_case",
+    "run_contract_crash_test",
+    "set_scenario_facts",
+  ],
+  divergence_visible: ["inspect_contract_case", "set_scenario_facts"],
   outcome_locked: ["inspect_contract_case", "propose_clarifying_redline"],
   redline_staged: ["inspect_contract_case", "verify_contract_tests"],
   verified: ["inspect_contract_case"],
@@ -16,6 +24,7 @@ export const agentToolLabels = {
   inspect_contract_case: "Inspect the current case",
   stage_interpretations: "Stage modeled readings",
   run_contract_crash_test: "Run the same-facts crash test",
+  set_scenario_facts: "Change the facts (what-if)",
   propose_clarifying_redline: "Stage a clarifying rule",
   verify_contract_tests: "Run outcome and boundary tests",
 } as const satisfies Record<WebMcpToolName, string>;

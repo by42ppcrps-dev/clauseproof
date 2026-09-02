@@ -67,7 +67,18 @@ function validateCaseBinding(
 ): void {
   const lock = state.outcomeLock;
   const sourceCase = lock?.sourceCase ?? state.case;
-  if (!sameValue(sourceCase, canonicalCase)) {
+  // The agreement is fixed; the scenario facts may be varied before the lock
+  // as a what-if, but they keep the canonical scenario id and credit rate.
+  const canonicalWithCurrentFacts = {
+    ...canonicalCase,
+    scenario: sourceCase.scenario,
+  };
+  if (
+    !sameValue(sourceCase, canonicalWithCurrentFacts) ||
+    sourceCase.scenario.id !== canonicalCase.scenario.id ||
+    sourceCase.scenario.serviceCreditRateBps !==
+      canonicalCase.scenario.serviceCreditRateBps
+  ) {
     issue(
       context,
       ["case"],

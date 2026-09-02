@@ -3,6 +3,7 @@ import type { FingerprintProvider } from "./fingerprint.js";
 import type {
   ClarificationRule,
   ModeledInterpretation,
+  ScenarioFacts,
 } from "../domain/schemas.js";
 import type {
   CrashTestRecord,
@@ -107,4 +108,20 @@ export interface AcceptRedlineData {
 
 export interface ResetData {
   phase: "ready";
+}
+
+export type ScenarioFactsInput = Omit<
+  ScenarioFacts,
+  "id" | "serviceCreditRateBps"
+>;
+
+export interface SetScenarioFactsCommand {
+  baseRevision: number;
+  scenario: ScenarioFactsInput;
+  rationale: string;
+}
+
+export interface SetScenarioFactsData {
+  scenario: ScenarioFacts;
+  crashTest: CrashTestRecord | null;
 }

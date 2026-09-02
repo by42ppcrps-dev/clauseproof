@@ -20,6 +20,7 @@ export const webMcpToolNames = [
   "run_contract_crash_test",
   "propose_clarifying_redline",
   "verify_contract_tests",
+  "set_scenario_facts",
 ] as const;
 
 export const exclusiveRemedyScopes = [

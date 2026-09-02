@@ -16,10 +16,10 @@ function definitions() {
 }
 
 describe("tool definitions", () => {
-  it("defines five unique, concise tools with correct read annotations", () => {
+  it("defines six unique, concise tools with correct read annotations", () => {
     const tools = definitions();
-    expect(tools).toHaveLength(5);
-    expect(new Set(tools.map(({ name }) => name)).size).toBe(5);
+    expect(tools).toHaveLength(6);
+    expect(new Set(tools.map(({ name }) => name)).size).toBe(6);
     expect(tools.every(({ description }) => description.length <= 450)).toBe(
       true,
     );

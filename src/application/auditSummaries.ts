@@ -1,8 +1,25 @@
+import type { ScenarioFacts } from "../domain/schemas.js";
 import type {
+  CrashTestRecord,
   OutcomeLock,
   RedlineProposal,
   VerificationRecord,
 } from "../domain/workflow.js";
+
+function dollars(cents: number): string {
+  const whole = String(Math.round(cents / 100));
+  return `$${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+}
+
+export function scenarioSummary(
+  scenario: ScenarioFacts,
+  crashTest: CrashTestRecord | null,
+): string {
+  const rerun = crashTest
+    ? `; both readings re-executed, divergence ${dollars(crashTest.divergence.totalFinancialDivergenceCents)}`
+    : "";
+  return `Facts changed: ${scenario.monthlyUptime.length} month(s) of uptime, ${dollars(scenario.monthlyFeeCents)}/month, ${scenario.monthsRemaining} months remaining${rerun}.`;
+}
 
 export function outcomeLockSummary(lock: OutcomeLock): string {
   const { cureDays, preserveAccruedCredits, trigger } = lock.expectedRule;

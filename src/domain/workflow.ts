@@ -10,6 +10,7 @@ import type {
   CommercialOutcome,
   ModeledInterpretation,
   OutcomeTest,
+  ScenarioFacts,
 } from "./schemas.js";
 import type { WorkflowPhase } from "./model.js";
 
@@ -93,6 +94,31 @@ export function createInitialWorkflowState(
     proposal: null,
     verification: null,
     events: [],
+  };
+}
+
+export const scenarioEditablePhases: readonly WorkflowPhase[] = [
+  "ready",
+  "interpretations_staged",
+  "divergence_visible",
+];
+
+export function replaceScenario(
+  state: WorkflowState,
+  scenario: ScenarioFacts,
+  crashTest: CrashTestRecord | null,
+): WorkflowState {
+  if (!scenarioEditablePhases.includes(state.phase)) {
+    throw new DomainError(
+      "INVALID_PHASE",
+      `Changing the facts requires a phase before the outcome lock; current phase is ${state.phase}.`,
+      "Facts are frozen once the person locks intent. Inspect the case and continue from its current phase.",
+    );
+  }
+  return {
+    ...state,
+    case: { ...state.case, scenario },
+    crashTest: state.phase === "divergence_visible" ? crashTest : null,
   };
 }
 

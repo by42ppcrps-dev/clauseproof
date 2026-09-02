@@ -5,6 +5,7 @@ import {
   inspectContractCaseInputSchema,
   proposeClarifyingRedlineInputSchema,
   runContractCrashTestInputSchema,
+  setScenarioFactsInputSchema,
   stageInterpretationsInputSchema,
   verifyContractTestsInputSchema,
 } from "./schemas.js";
@@ -52,6 +53,15 @@ export function createToolDefinitions(
       inputSchema: z.toJSONSchema(runContractCrashTestInputSchema),
       annotations: writeAnnotations,
       execute: (input) => handlers.run_contract_crash_test(input),
+    },
+    {
+      name: "set_scenario_facts",
+      title: "Change the facts (what-if)",
+      description:
+        "What-if: replace the scenario facts (monthly uptime list, fee, months remaining, notice and cure dates) before the person locks intent. If both readings are staged and executed, the page re-runs them on the new facts and returns the new divergence. Use for questions like 'what if March also missed?'. The page performs every calculation.",
+      inputSchema: z.toJSONSchema(setScenarioFactsInputSchema),
+      annotations: writeAnnotations,
+      execute: (input) => handlers.set_scenario_facts(input),
     },
     {
       name: "propose_clarifying_redline",

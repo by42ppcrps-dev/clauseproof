@@ -27,7 +27,7 @@ The UI renders selectors and invokes actor-safe wrappers. Components do not muta
 
 ## Authority
 
-Agent or manual-fallback actors may stage interpretations, run the crash test, stage a redline, and verify it. Only a `human-ui` actor may lock an outcome, accept a redline, or reset the case.
+Agent or manual-fallback actors may stage interpretations, run the crash test, change the scenario facts before the lock (what-if), stage a redline, and verify it. The lock snapshots the facts on screen at that moment, so a what-if can never change what a person has already locked. Only a `human-ui` actor may lock an outcome, accept a redline, or reset the case.
 
 There is no generic public dispatch API. Human-only service methods require a human actor type that WebMCP code cannot construct or import through its adapter surface. An agent-originated audit event can never be recorded as `human-ui`.
 

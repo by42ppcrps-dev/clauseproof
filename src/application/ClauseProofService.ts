@@ -1,4 +1,3 @@
-import { DomainError } from "../domain/errors.js";
 import type { Actor } from "../domain/schemas.js";
 import { canonicalCase } from "../domain/seed.js";
 import {
@@ -7,6 +6,7 @@ import {
   lockExpectedOutcome,
   markVerified,
   recoverOutcomeLockAfterIntegrityFailure,
+  replaceScenario,
   showCrashTest,
   stageInterpretationSet,
   stageProposal,
@@ -16,9 +16,16 @@ import {
 import {
   outcomeLockSummary,
   proposalSummary,
+  scenarioSummary,
   verificationSummary,
 } from "./auditSummaries.js";
-import { hasHumanAuthority, type HumanUiActor } from "./humanAuthority.js";
+import type { HumanUiActor } from "./humanAuthority.js";
+import {
+  assertHumanAuthority,
+  auditActorFor,
+  normalizeServiceError,
+  shouldRecoverOutcomeLock,
+} from "./serviceResults.js";
 import { assertAcceptanceProof } from "./acceptanceProof.js";
 import {
   createCrashTest,
@@ -27,6 +34,7 @@ import {
   createProposal,
   createVerification,
 } from "./serviceOperations.js";
+import { createScenarioFacts } from "./scenarioOperations.js";
 import type {
   AcceptRedlineCommand,
   AcceptRedlineData,
@@ -37,6 +45,8 @@ import type {
   RunCrashTestCommand,
   RunCrashTestData,
   ServiceResult,
+  SetScenarioFactsCommand,
+  SetScenarioFactsData,
   StageInterpretationsCommand,
   StageInterpretationsData,
   StageRedlineCommand,
@@ -101,14 +111,7 @@ export class ClauseProofService {
     actor: Actor,
     action: string,
   ): ServiceResult<T> {
-    const normalized =
-      error instanceof DomainError
-        ? error
-        : new DomainError(
-            "INTERNAL_ERROR",
-            "ClauseProof could not complete the action.",
-            "Inspect the current case before retrying.",
-          );
+    const normalized = normalizeServiceError(error);
     this.appendEvent(actor, action, "rejected", normalized.message);
     return {
       ok: false,
@@ -164,15 +167,31 @@ export class ClauseProofService {
     }
   }
 
+  public async setScenarioFacts(
+    actor: AgentOrManualActor,
+    command: SetScenarioFactsCommand,
+  ): Promise<ServiceResult<SetScenarioFactsData>> {
+    try {
+      const { scenario, crashTest } = createScenarioFacts(this.state, command);
+      this.state = ownValue(replaceScenario(this.state, scenario, crashTest));
+      return this.success(
+        actor,
+        "set_scenario_facts",
+        scenarioSummary(scenario, crashTest),
+        { scenario, crashTest },
+      );
+    } catch (error) {
+      return this.failure(error, actor, "set_scenario_facts");
+    }
+  }
+
   public async lockOutcome(
     actor: HumanUiActor,
     command: LockOutcomeCommand,
   ): Promise<ServiceResult<LockOutcomeData>> {
-    const auditActor: Actor = hasHumanAuthority(actor)
-      ? { kind: "human-ui" }
-      : { kind: "system" };
+    const auditActor = auditActorFor(actor);
     try {
-      this.requireHumanAuthority(actor, "lock an outcome");
+      assertHumanAuthority(actor, "lock an outcome");
       const outcomeLock = await createOutcomeLock(
         this.state,
         this.dependencies,
@@ -230,13 +249,7 @@ export class ClauseProofService {
         { verification },
       );
     } catch (error) {
-      if (
-        error instanceof DomainError &&
-        this.state.phase === "redline_staged" &&
-        ["RULE_MISMATCH", "STALE_PROPOSAL", "STALE_OUTCOME_LOCK"].includes(
-          error.code,
-        )
-      ) {
+      if (shouldRecoverOutcomeLock(error, this.state.phase)) {
         this.state = ownValue(
           recoverOutcomeLockAfterIntegrityFailure(this.state),
         );
@@ -249,11 +262,9 @@ export class ClauseProofService {
     actor: HumanUiActor,
     command: AcceptRedlineCommand,
   ): Promise<ServiceResult<AcceptRedlineData>> {
-    const auditActor: Actor = hasHumanAuthority(actor)
-      ? { kind: "human-ui" }
-      : { kind: "system" };
+    const auditActor = auditActorFor(actor);
     try {
-      this.requireHumanAuthority(actor, "accept a redline");
+      assertHumanAuthority(actor, "accept a redline");
       await assertAcceptanceProof(this.state, this.dependencies, command);
       this.state = ownValue(acceptProposal(this.state));
       return this.success(
@@ -270,11 +281,9 @@ export class ClauseProofService {
   public async resetDemo(
     actor: HumanUiActor,
   ): Promise<ServiceResult<ResetData>> {
-    const auditActor: Actor = hasHumanAuthority(actor)
-      ? { kind: "human-ui" }
-      : { kind: "system" };
+    const auditActor = auditActorFor(actor);
     try {
-      this.requireHumanAuthority(actor, "reset the case");
+      assertHumanAuthority(actor, "reset the case");
       this.state = ownValue(createInitialWorkflowState(canonicalCase));
       return this.success(
         auditActor,
@@ -284,16 +293,6 @@ export class ClauseProofService {
       );
     } catch (error) {
       return this.failure(error, auditActor, "reset_demo");
-    }
-  }
-
-  private requireHumanAuthority(actor: HumanUiActor, action: string): void {
-    if (!hasHumanAuthority(actor)) {
-      throw new DomainError(
-        "INVALID_INPUT",
-        `Human UI authority is required to ${action}.`,
-        "Use the visible human control in the page.",
-      );
     }
   }
 }

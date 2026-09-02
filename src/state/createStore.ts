@@ -13,6 +13,8 @@ import type {
   RunCrashTestCommand,
   RunCrashTestData,
   ServiceResult,
+  SetScenarioFactsCommand,
+  SetScenarioFactsData,
   StageInterpretationsCommand,
   StageInterpretationsData,
   StageRedlineCommand,
@@ -73,6 +75,13 @@ export class ClauseProofStore {
     command: RunCrashTestCommand,
   ): Promise<ServiceResult<RunCrashTestData>> {
     return this.execute(() => this.service.runCrashTest(actor, command));
+  }
+
+  public setScenarioFacts(
+    actor: AgentOrManualActor,
+    command: SetScenarioFactsCommand,
+  ): Promise<ServiceResult<SetScenarioFactsData>> {
+    return this.execute(() => this.service.setScenarioFacts(actor, command));
   }
 
   public lockOutcome(

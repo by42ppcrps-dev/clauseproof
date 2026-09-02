@@ -170,3 +170,42 @@ export function evaluateInterpretation(
     ),
   };
 }
+
+export interface ScenarioMonthView {
+  month: string;
+  uptimeBps: number;
+  belowThreshold: boolean;
+  creditCents: number;
+}
+
+export interface ScenarioView {
+  months: ScenarioMonthView[];
+  qualifyingMonthCount: number;
+  feesAtStakeCents: number;
+}
+
+export function describeScenario(
+  facts: ScenarioFacts,
+  thresholdBps: number,
+): ScenarioView {
+  const monthlyCreditCents = Math.trunc(
+    (facts.monthlyFeeCents * facts.serviceCreditRateBps) / 10_000,
+  );
+  const months = [...facts.monthlyUptime]
+    .sort((left, right) => left.month.localeCompare(right.month))
+    .map(({ month, uptimeBps }) => {
+      const belowThreshold = matchesThreshold(uptimeBps, thresholdBps, "below");
+      return {
+        month,
+        uptimeBps,
+        belowThreshold,
+        creditCents: belowThreshold ? monthlyCreditCents : 0,
+      };
+    });
+  return {
+    months,
+    qualifyingMonthCount: months.filter(({ belowThreshold }) => belowThreshold)
+      .length,
+    feesAtStakeCents: facts.monthlyFeeCents * facts.monthsRemaining,
+  };
+}

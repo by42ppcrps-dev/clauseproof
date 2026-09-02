@@ -619,7 +619,11 @@ test("uses real WebMCP tools for a failed candidate and agent repair", async ({
   await expect(page.getByText("WebMCP · dynamic tools live")).toBeVisible();
   await expect
     .poll(() => registeredBrowserToolNames(page))
-    .toEqual(["inspect_contract_case", "stage_interpretations"]);
+    .toEqual([
+      "inspect_contract_case",
+      "set_scenario_facts",
+      "stage_interpretations",
+    ]);
 
   const restarted = await executeBrowserTool<StageInterpretationsResult>(
     page,
@@ -659,7 +663,11 @@ test("uses real WebMCP tools for a failed candidate and agent repair", async ({
   expect(restarted.ok).toBe(true);
   await expect
     .poll(() => registeredBrowserToolNames(page))
-    .toEqual(["inspect_contract_case", "run_contract_crash_test"]);
+    .toEqual([
+      "inspect_contract_case",
+      "run_contract_crash_test",
+      "set_scenario_facts",
+    ]);
 });
 
 test("has no horizontal overflow and exposes visible keyboard focus", async ({

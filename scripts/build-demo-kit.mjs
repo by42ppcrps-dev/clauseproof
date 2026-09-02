@@ -2,7 +2,7 @@
 // per video section, caption text, stills, and an ffmpeg assembly script.
 // Usage: node scripts/build-demo-kit.mjs   (macOS: uses `say` and `ffmpeg`)
 import { execFileSync } from "node:child_process";
-import { copyFile, mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
@@ -14,9 +14,11 @@ const rate = process.env.RATE ?? "172";
 const prompts = {
   "01-stage-readings":
     "Read the three clauses on this page. Stage two readings of what happens after two months below the 99.5% uptime commitment: first, a vendor-favorable reading where the 'sole and exclusive remedy' sentence displaces every SLA-related remedy, so repeated misses are not a material breach; second, a customer-favorable reading where that sentence only limits compensation, so repeated misses can still be a material breach with termination. Keep accrued credits in both. Cite the clauses you rely on, explain each choice, and do not pick the intended outcome for me. Then run both readings against the same facts.",
-  "02-wrong-candidate":
+  "02-what-if":
+    "What if March 2026 had also missed, at 99.2% uptime? Change the facts to add that month, keep everything else the same, and tell me the new gap between the two readings. Do not lock or decide anything for me.",
+  "03-wrong-candidate":
     "Look at my locked outcome. Before matching it, try a stricter candidate that requires three qualifying misses but matches every other locked term, then run every contract test. Report the page's pass counts, the failed counterexample, and the surviving altered rule. Do not repair or accept yet.",
-  "03-repair":
+  "04-repair":
     "Using only my locked rule and the counterexample you got back, repair the candidate: change the occurrence count from three to two and nothing else. Stage the replacement and run every test again. Report the page's counts and whether it is eligible for my acceptance. Do not accept it.",
 };
 
@@ -37,36 +39,43 @@ const sections = [
   },
   {
     id: "03",
+    caption:
+      "set_scenario_facts · the page re-runs both readings on the new facts",
+    narration:
+      "Before deciding anything, a what-if. What if March also misses? The agent changes the facts through a tool, the page re-runs both readings, and the gap moves. Nothing has been decided yet.",
+  },
+  {
+    id: "04",
     caption: "No tool for this. Locking intent is person-only.",
     narration:
       "Now the part that stays human. I decide what this clause should mean: two misses in six months, ten-day cure, credits preserved. There is no tool for this, and the agent's tool list changes the moment I lock it.",
   },
   {
-    id: "04",
+    id: "05",
     caption:
       "Rule → generated wording → parsed back → 6 outcome tests + 8 altered rules\n5/6 · 7/8 · exact counterexample",
     narration:
       "I ask the agent to try a stricter rule first: three misses. It sends a structured rule, not prose. The page compiles it into real clause wording, parses that wording back, and runs six outcome tests and eight altered-rule challenges. Five of six. Seven of eight. And the failing test says exactly why: after two misses, termination was expected, and the three-miss rule gave none.",
   },
   {
-    id: "05",
+    id: "06",
     caption:
       "Repair from evidence, not guesses\n6/6 · 8/8 · eligible, not accepted",
     narration:
       "The agent reads the counterexample and repairs only the occurrence count. Six of six. Eight of eight. Eligible. Not accepted, because the agent cannot accept.",
   },
   {
-    id: "06",
+    id: "07",
     caption: "Revision 1 · every step attributed to who did it",
     narration:
       "I accept. Revision one. The ledger keeps the whole story: the wrong candidate, the failing test, the repair, the pass, and my acceptance, each attributed to whoever actually did it.",
   },
   {
-    id: "07",
+    id: "08",
     caption:
-      "5 typed WebMCP tools · registered per phase · strict schemas · no tool for decisions\ngithub.com/lumegridai-ops/clauseproof · MIT",
+      "6 typed WebMCP tools · registered per phase · strict schemas · no tool for decisions\ngithub.com/lumegridai-ops/clauseproof · MIT",
     narration:
-      "Five typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide.",
+      "Six typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide.",
     still: "05-authority-boundary.png",
   },
 ];
@@ -82,14 +91,17 @@ if (process.env.FALLBACK === "1") {
     "Registered WebMCP tools called through document.modelContext\n(tool calls replayed by the test harness; no chat agent on screen)";
   byId["02"].narration =
     "One prompt to a browser agent produces three WebMCP calls: inspect the case, stage two readings, run the crash test. Here those exact registered tools run through document model context. The page does the math: two thousand dollars in credits either way, but one reading leaves eighty thousand in fees on the table, and the other lets the customer walk.";
-  byId["04"].narration =
-    "Next, a deliberately wrong candidate: three misses instead of two. It arrives as a structured rule, not prose. The page compiles it into real clause wording, parses that wording back, and runs six outcome tests and eight altered-rule challenges. Five of six. Seven of eight. And the failing test says exactly why: after two misses, termination was expected, and the three-miss rule gave none.";
   byId["05"].narration =
+    "Next, a deliberately wrong candidate: three misses instead of two. It arrives as a structured rule, not prose. The page compiles it into real clause wording, parses that wording back, and runs six outcome tests and eight altered-rule challenges. Five of six. Seven of eight. And the failing test says exactly why: after two misses, termination was expected, and the three-miss rule gave none.";
+  byId["06"].narration =
     "The repair changes only the occurrence count, exactly what the counterexample pointed at. Six of six. Eight of eight. Eligible. Not accepted, because no tool can accept.";
-  byId["07"].narration =
-    "Five typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide.";
+  byId["08"].narration =
+    "Six typed WebMCP tools, registered per phase, strict schemas, and no tool for the decisions. One synthetic case today, not legal advice. The pattern is the point: agents propose and repair, the page proves, people decide.";
 }
 
+await rm(path.join(kit, "prompts"), { recursive: true, force: true });
+await rm(path.join(kit, "captions"), { recursive: true, force: true });
+await rm(path.join(kit, "narration"), { recursive: true, force: true });
 for (const dir of [
   "prompts",
   "narration",
@@ -186,7 +198,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 TAIL="\${TAIL:-0.6}"   # seconds of picture held after narration ends
 rm -f build/*.mp4 build/list.txt
-for n in 01 02 03 04 05 06 07; do
+for n in $(ls narration/*.m4a | xargs -n1 basename | sed 's/\\.m4a$//' | sort); do
   narr="narration/$n.m4a"
   ndur=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$narr")
   target=$(python3 -c "print($ndur + $TAIL)")
@@ -221,12 +233,13 @@ await writeFile(
 
 Generated by \`node scripts/build-demo-kit.mjs\`. Everything you need to produce the sub-three-minute video without typing live or reading a script on camera.
 
-1. Record five clips in the ChatGPT desktop app's built-in browser, one per section, and save them as \`clips/02.mov\` … \`clips/06.mov\`. Section 01 (hook) and 07 (close) use the stills provided unless you record them.
+1. Record six clips in the ChatGPT desktop app's built-in browser, one per section, and save them as \`clips/02.mov\` … \`clips/07.mov\`. Section 01 (hook) and 08 (close) use the stills provided unless you record them.
    - 02: paste \`prompts/01-stage-readings.txt\`; capture the tool calls and the two futures.
-   - 03: click **Lock this outcome**; show the tool list change.
-   - 04: paste \`prompts/02-wrong-candidate.txt\`; capture the 3-miss clause, 5/6, 7/8, the failed test.
-   - 05: paste \`prompts/03-repair.txt\`; capture the 2-miss clause, 6/6, 8/8.
-   - 06: click **Accept tested revision**; show Revision 1 and the ledger.
+   - 03: paste \`prompts/02-what-if.txt\`; capture the facts changing and the gap updating.
+   - 04: click **Lock this outcome**; show the tool list change.
+   - 05: paste \`prompts/03-wrong-candidate.txt\`; capture the 3-miss clause, 5/6, 7/8, the failed test.
+   - 06: paste \`prompts/04-repair.txt\`; capture the 2-miss clause, 6/6, 8/8.
+   - 07: click **Accept tested revision**; show Revision 1 and the ledger.
 2. Run \`./assemble.sh\`. It speeds up long clips to fit their narration, burns the captions, and writes \`final.mp4\`.
 3. Watch it once against the checklist in \`docs/DEMO.md\`, then upload to YouTube as Public.
 

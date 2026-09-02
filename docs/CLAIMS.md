@@ -15,6 +15,7 @@ ClauseProof is designed for commercial counsel, procurement teams, and contract 
 Within the supported synthetic model, ClauseProof can accurately claim that it:
 
 - executes two constrained semantic readings against the same page-owned facts;
+- re-executes both readings against replacement what-if facts supplied through a tool before the lock, and freezes the facts once a person locks intent;
 - calculates the modeled credits, termination availability, future fees, and financial divergence deterministically;
 - restricts readings to known clause IDs and supported semantic choices;
 - records the labels, citations, rationales, and actor provenance that were actually staged;
