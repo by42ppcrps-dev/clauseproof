@@ -5,3 +5,5 @@ ClauseProof_Master_Build_Spec.md
 ClauseProof_Planning_Bundle/
 coverage/
 node_modules/
+
+netlify.toml

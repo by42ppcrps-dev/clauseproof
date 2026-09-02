@@ -12,7 +12,7 @@ describe("production document assets", () => {
     ]);
 
     expect(document).toContain(
-      '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />',
+      '<link rel="icon" type="image/svg+xml" href="./favicon.svg" />',
     );
     expect(favicon).toContain("<svg");
     expect(favicon).toContain("CP");
