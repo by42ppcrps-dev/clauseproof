@@ -107,7 +107,7 @@ mark("crashTest");
 await pause(2500);
 const futures = page.getByRole("region", { name: "Two commercial futures" });
 await futures.scrollIntoViewIfNeeded();
-await pause(600);
+await pause(1800);
 await shot("02-two-futures.png", futures);
 
 await page
@@ -146,7 +146,7 @@ mark("failedVerify");
 await pause(2500);
 const bench = page.locator(".testbench-panel");
 await bench.scrollIntoViewIfNeeded();
-await pause(600);
+await pause(1800);
 await shot("03-failed-tests.png", bench);
 
 const repaired = await tool("propose_clarifying_redline", {

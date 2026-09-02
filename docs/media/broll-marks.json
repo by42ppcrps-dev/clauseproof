@@ -1,8 +1,8 @@
 {
-  "crashTest": 2.613,
-  "locked": 6.518,
-  "failedVerify": 10.732,
-  "passedVerify": 15.028,
-  "accepted": 18.084,
-  "end": 23.709
+  "crashTest": 2.576,
+  "locked": 7.698,
+  "failedVerify": 11.911,
+  "passedVerify": 17.414,
+  "accepted": 20.466,
+  "end": 26.113
 }
