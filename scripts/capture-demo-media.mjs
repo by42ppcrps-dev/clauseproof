@@ -1,7 +1,7 @@
 // Captures README screenshots and a B-roll recording by driving the real
 // registered WebMCP tools through a fake document.modelContext. Usage:
 //   BASE_URL=http://localhost:5173 node scripts/capture-demo-media.mjs
-import { mkdir, rename } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
@@ -36,6 +36,11 @@ await context.addInitScript(() => {
   });
 });
 const page = await context.newPage();
+const t0 = Date.now();
+const marks = {};
+function mark(name) {
+  marks[name] = (Date.now() - t0) / 1000;
+}
 
 async function tool(name, input) {
   return page.evaluate(
@@ -98,7 +103,8 @@ await tool("run_contract_crash_test", {
   interpretationSetId: staged.data.interpretationSetId,
 });
 await page.getByText("$80,000", { exact: true }).first().waitFor();
-await pause(1200);
+mark("crashTest");
+await pause(2500);
 const futures = page.getByRole("region", { name: "Two commercial futures" });
 await futures.scrollIntoViewIfNeeded();
 await pause(600);
@@ -110,7 +116,8 @@ await page
 await pause(600);
 await page.getByRole("button", { name: "Lock this outcome" }).click();
 await page.getByText("Locked by person", { exact: true }).waitFor();
-await pause(1000);
+mark("locked");
+await pause(2500);
 const authority = page.locator(".authority-boundary");
 await authority.scrollIntoViewIfNeeded();
 await pause(600);
@@ -135,7 +142,8 @@ await tool("verify_contract_tests", {
   proposalId: wrong.data.proposalId,
 });
 await page.getByText("Repair required", { exact: true }).waitFor();
-await pause(1000);
+mark("failedVerify");
+await pause(2500);
 const bench = page.locator(".testbench-panel");
 await bench.scrollIntoViewIfNeeded();
 await pause(600);
@@ -155,10 +163,12 @@ await tool("verify_contract_tests", {
   proposalId: repaired.data.proposalId,
 });
 await page.getByText("All tests passed", { exact: true }).waitFor();
-await pause(1000);
+mark("passedVerify");
+await pause(3000);
 await page.getByRole("button", { name: "Accept tested revision" }).click();
 await page.getByText("Revision 1", { exact: true }).waitFor();
-await pause(1200);
+mark("accepted");
+await pause(2500);
 await page.evaluate(() => window.scrollTo(0, 0));
 await pause(600);
 await shot("04-accepted.png");
@@ -168,6 +178,11 @@ await pause(800);
 await shot("06-proof-ledger.png", ledger);
 await pause(1500);
 
+mark("end");
+await writeFile(
+  path.join(outDir, "broll-marks.json"),
+  JSON.stringify(marks, null, 2),
+);
 const video = page.video();
 await context.close();
 await browser.close();
